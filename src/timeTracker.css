@@ -1,0 +1,109 @@
+body {
+    padding: 10px;
+}
+
+#timeTracker {
+    font-family: Avenir, Arial, sans-serif;
+    font-size: var(--joplin-font-size);
+}
+
+.input-group {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+#taskName, #projectName {
+    width: 46%;
+    min-height: 23px;
+    color: var(--joplin-color);
+    background-color: var(--joplin-background-color);
+    border-color: rgb(118, 118, 118);
+    border-width: 1px;
+    border-radius: 3px;
+    border-style: solid;
+}
+
+#startButton {
+    width: 18%;
+    min-height: 23px;
+    cursor: pointer;
+    color: var(--joplin-color);
+    background-color: var(--joplin-background-color);
+    border-color: rgb(118, 118, 118);
+    border-width: 1px;
+    border-radius: 3px;
+    border-spacing: 5px;
+    border-style: solid;
+}
+
+#startButton:hover {
+    background-color: var(--joplin-background-color-hover3);
+}
+
+#errorMessage {
+    color: red;
+    margin-bottom: 5px;
+    font-size: var(--joplin-font-size);
+}
+
+#runningTasks {
+    margin-top: 5px;
+    border-color: rgb(118, 118, 118);
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 3px;
+    padding: 5px;
+    overflow-y: auto;
+    font-size: var(--joplin-font-size);
+    box-sizing: border-box;
+}
+
+#runningTasks div {
+    margin-bottom: 5px;
+    padding: 5px;
+    background-color: var(--joplin-background-color);
+    border-radius: 3px;
+}
+
+.stopButton {
+    margin-top: 5px;
+    padding: 3px 8px;
+    background-color: var(--joplin-background-color);
+    color: var(--joplin-color);
+    border-color: rgb(118, 118, 118);
+    border-width: 1px;
+    border-radius: 3px;
+    border-style: solid;
+    cursor: pointer;
+}
+
+.stopButton:hover {
+    background-color: var(--joplin-background-color-hover3);
+}
+
+::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+::-webkit-scrollbar-corner {
+    background: none;
+}
+
+::-webkit-scrollbar-track {
+    border: none;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(100, 100, 100, 0.3);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-track:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 100, 100, 0.7);
+}

@@ -1,0 +1,15 @@
+{
+	"manifest_version": 1,
+	"id": "joplin.plugin.alondmnt.time-tracker",
+	"app_min_version": "2.13",
+	"version": "0.0.1",
+	"name": "Time Tracker",
+	"description": "Time Tracker",
+	"author": "Alon Diament",
+	"homepage_url": "",
+	"repository_url": "",
+	"keywords": [],
+	"categories": [],
+	"screenshots": [],
+	"icons": {}
+}
