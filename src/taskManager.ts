@@ -86,9 +86,13 @@ export class TaskManager {
     const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
     const taskStartTime = formatLocalTime(new Date(startTime));
-    const lineIndex = lines.findIndex(line => 
-      line.startsWith(`${taskName},${project},${taskStartTime.slice(0, 10)}`)
-    );
+    const lineIndex = lines.findIndex(line => {
+      const parts = line.split(',');
+      return parts[0] === taskName && 
+             parts[1] === project && 
+             parts[2].startsWith(taskStartTime.slice(0, 10)) && 
+             parts.length === 4; // Ensure there's no end time
+    });
 
     if (lineIndex !== -1) {
       const updatedLine = `${lines[lineIndex]}${formatLocalTime(new Date(endTime))},${formatDuration(duration)}`;
@@ -96,7 +100,11 @@ export class TaskManager {
       const updatedBody = lines.join('\n');
       await this.noteManager.updateNote(updatedBody);
     } else {
-      console.error(`Could not find the start entry for task: ${taskName}, project: ${project}`);
+      console.error(`Could not find the open start entry for task: ${taskName}, project: ${project}`);
+      this.joplin.views.panels.postMessage(this.panel, { 
+        name: 'error', 
+        message: `Could not find the open start entry for task: ${taskName}, project: ${project}` 
+      });
     }
 
     await this.scanNoteAndUpdateTasks();

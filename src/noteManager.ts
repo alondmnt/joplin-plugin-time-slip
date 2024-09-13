@@ -29,7 +29,7 @@ export class NoteManager {
       console.error('Failed to update note:', error);
       this.joplin.views.panels.postMessage(this.panel, { 
         name: 'error', 
-        message: 'Failed to update note. Please check your permissions.' 
+        message: 'Failed to update note.' 
       });
     }
   }
