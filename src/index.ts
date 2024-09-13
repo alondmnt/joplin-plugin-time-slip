@@ -25,6 +25,8 @@ joplin.plugins.register({
     const noteManager = new NoteManager(joplin, noteId, panel);
     const taskManager = new TaskManager(joplin, panel, noteId, noteManager);
     noteManager.setTaskManager(taskManager);
+    // wait for 3 seconds before initializing
+    await new Promise(resolve => setTimeout(resolve, 3000));
     await taskManager.initialize();
 
     await joplin.workspace.onSyncComplete(() => taskManager.scanNoteAndUpdateTasks());
