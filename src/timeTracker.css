@@ -164,7 +164,7 @@ body {
 
 .autocomplete-list {
     position: absolute;
-    border: 1px solid var(--joplin-divider-color);
+    border: 2px solid var(--joplin-divider-color);
     border-top: none;
     z-index: 99;
     top: 100%;
@@ -174,7 +174,7 @@ body {
     max-height: 150px;
     overflow-y: auto;
     background-color: var(--joplin-background-color);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(180, 180, 180, 0.2);
     margin-top: -1px; /* This will make it adjacent to the input box */
 }
 
