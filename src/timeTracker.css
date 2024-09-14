@@ -64,10 +64,48 @@ body {
     background-color: var(--joplin-background-color);
     border: 1px solid var(--joplin-divider-color);
     border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+}
+
+.running-task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.running-task-title-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.running-task-title {
+    font-weight: bold;
+}
+
+.running-task-project {
+    font-size: 0.9em;
+    color: var(--joplin-color-faded);
+}
+
+.running-task-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.running-task-start-time {
+    flex: 1;
+    text-align: left;
+}
+
+.running-task-duration {
+    flex: 1;
+    text-align: right;
 }
 
 .stopButton {
-    margin-top: 5px;
     padding: 3px 8px;
     background-color: var(--joplin-background-color);
     color: var(--joplin-color);

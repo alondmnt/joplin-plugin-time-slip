@@ -110,10 +110,17 @@ function updateRunningTasksDisplay() {
       const formattedDuration = formatDuration(durationSeconds);
       const formattedStartTime = formatStartTime(startTime);
       return `<div class="running-task">
-        <strong>${taskName}</strong> (${projectName})<br>
-        Start: ${formattedStartTime}<br>
-        Duration: ${formattedDuration}
-        <button class="stopButton" data-task="${taskName}" data-project="${projectName}">Stop</button>
+        <div class="running-task-header">
+          <div class="running-task-title-container">
+            <span class="running-task-title">${taskName}</span>
+            <span class="running-task-project">${projectName}</span>
+          </div>
+          <button class="stopButton" data-task="${taskName}" data-project="${projectName}">Stop</button>
+        </div>
+        <div class="running-task-info">
+          <span class="running-task-start-time">${formattedStartTime}</span>
+          <span class="running-task-duration">${formattedDuration}</span>
+        </div>
       </div>`;
     }).join('');
   } catch (error) {
