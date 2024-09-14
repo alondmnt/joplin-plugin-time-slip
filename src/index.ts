@@ -38,6 +38,12 @@ joplin.plugins.register({
         await taskManager.startTask(message.taskName, message.projectName);
       } else if (message.name === 'stop') {
         await taskManager.stopTask(message.taskName, message.projectName);
+      } else if (message.name === 'requestInitialData') {
+        const initialData = await taskManager.getInitialData();
+        await joplin.views.panels.postMessage(panel, {
+          name: 'initialData',
+          ...initialData
+        });
       }
     });
   },

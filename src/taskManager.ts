@@ -9,6 +9,7 @@ export class TaskManager {
   private noteManager: NoteManager;
   private uniqueTasks: string[] = [];
   private uniqueProjects: string[] = [];
+  private completedTasks: { taskName: string; project: string; duration: number }[] = [];
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -77,7 +78,7 @@ export class TaskManager {
   }
 
   private updateCompletedTasks(completedTasks: { [key: string]: number }) {
-    const sortedTasks = Object.entries(completedTasks)
+    this.completedTasks = Object.entries(completedTasks)
       .sort(([, a], [, b]) => b - a)
       .map(([key, duration]) => {
         const [taskName, project] = key.split('|');
@@ -86,7 +87,7 @@ export class TaskManager {
 
     this.joplin.views.panels.postMessage(this.panel, { 
       name: 'updateCompletedTasks', 
-      tasks: sortedTasks 
+      tasks: this.completedTasks 
     });
   }
 
@@ -154,5 +155,14 @@ export class TaskManager {
     }
 
     await this.scanNoteAndUpdateTasks();
+  }
+
+  async getInitialData() {
+    return {
+      runningTasks: this.tasks,
+      completedTasks: this.completedTasks,
+      uniqueTasks: this.uniqueTasks,
+      uniqueProjects: this.uniqueProjects
+    };
   }
 }

@@ -11,6 +11,16 @@ let completedTasks = [];
 let uniqueTasks = [];
 let uniqueProjects = [];
 
+// Add this function at the beginning of the file
+function requestInitialData() {
+  webviewApi.postMessage({
+    name: 'requestInitialData'
+  });
+}
+
+// Call this function immediately when the script loads
+requestInitialData();
+
 startButton.addEventListener('click', function() {
   const taskName = taskNameInput.value.trim();
   const projectName = projectNameInput.value.trim();
@@ -58,6 +68,16 @@ webviewApi.onMessage(function(event) {
   } else if (message.name === 'error') {
     errorMessageDiv.textContent = message.message;
     errorMessageDiv.style.color = 'red';
+  } else if (message.name === 'initialData') {
+    // Handle initial data
+    tasks = message.runningTasks || {};
+    completedTasks = message.completedTasks || [];
+    uniqueTasks = message.uniqueTasks || [];
+    uniqueProjects = message.uniqueProjects || [];
+    updateRunningTasksDisplay();
+    updateCompletedTasksDisplay();
+    setupAutocomplete(taskNameInput, uniqueTasks);
+    setupAutocomplete(projectNameInput, uniqueProjects);
   }
 });
 
@@ -159,6 +179,7 @@ setInterval(() => {
 
 function setupAutocomplete(input, items) {
   let autocompleteList = null;
+  let selectedIndex = -1;
 
   input.addEventListener('input', updateAutocomplete);
   input.addEventListener('keydown', handleKeydown);
@@ -201,37 +222,49 @@ function setupAutocomplete(input, items) {
 
   function handleKeydown(e) {
     if (!autocompleteList || autocompleteList.style.display === 'none') {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (input === taskNameInput) {
+          projectNameInput.focus();
+        } else if (input === projectNameInput) {
+          startButton.click();
+        }
+      }
       return;
     }
 
     const items = autocompleteList.getElementsByTagName('li');
 
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      selectedIndex = (selectedIndex + 1) % items.length;
-      updateSelectedItem();
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
-      updateSelectedItem();
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (selectedIndex !== -1) {
-        input.value = items[selectedIndex].textContent;
-      }
-      autocompleteList.style.display = 'none';
-      if (input === taskNameInput) {
-        projectNameInput.focus();
-      } else if (input === projectNameInput) {
-        startButton.click();
-      }
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      input.value = '';
-      autocompleteList.style.display = 'none';
-      input.blur();
-    } else if (e.key === 'Tab') {
-      autocompleteList.style.display = 'none';
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        selectedIndex = (selectedIndex + 1) % items.length;
+        updateSelectedItem();
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+        updateSelectedItem();
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex !== -1) {
+          input.value = items[selectedIndex].textContent;
+          autocompleteList.style.display = 'none';
+        }
+        if (input === taskNameInput) {
+          projectNameInput.focus();
+        } else if (input === projectNameInput) {
+          startButton.click();
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        autocompleteList.style.display = 'none';
+        break;
+      case 'Tab':
+        autocompleteList.style.display = 'none';
+        break;
     }
   }
 
@@ -240,6 +273,7 @@ function setupAutocomplete(input, items) {
     for (let i = 0; i < items.length; i++) {
       if (i === selectedIndex) {
         items[i].classList.add('selected');
+        items[i].scrollIntoView({ block: 'nearest' });
       } else {
         items[i].classList.remove('selected');
       }
@@ -253,17 +287,6 @@ function setupAutocomplete(input, items) {
   });
 }
 
-// Add these event listeners outside of the setupAutocomplete function
-taskNameInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    projectNameInput.focus();
-  }
-});
-
-projectNameInput.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    startButton.click();
-  }
-});
+// Remove these event listeners as they're now handled in the setupAutocomplete function
+// taskNameInput.addEventListener('keydown', function(e) { ... });
+// projectNameInput.addEventListener('keydown', function(e) { ... });
