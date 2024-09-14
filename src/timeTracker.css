@@ -1,19 +1,20 @@
 body {
     padding: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #timeTracker {
     font-family: Avenir, Arial, sans-serif;
     font-size: var(--joplin-font-size);
     max-height: calc(100vh - 20px); /* Adjust if needed */
-    overflow-y: auto;
-    overflow-x: hidden;
 }
 
 .input-group {
     display: flex;
     gap: 5px;
     margin-bottom: 5px;
+    position: relative;
 }
 
 #taskName, #projectName {
@@ -82,8 +83,8 @@ body {
 }
 
 ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 7px;
+    height: 7px;
 }
 
 ::-webkit-scrollbar-corner {
@@ -121,7 +122,7 @@ body {
 }
 
 #completedTasks th, #completedTasks td {
-    padding: 8px;
+    padding: 5px;
     text-align: left;
     border-bottom: 1px solid var(--joplin-divider-color);
 }
@@ -158,5 +159,37 @@ body {
 }
 
 .startButton:hover {
+    background-color: var(--joplin-background-color-hover3);
+}
+
+.autocomplete-list {
+    position: absolute;
+    border: 1px solid var(--joplin-divider-color);
+    border-top: none;
+    z-index: 99;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 0;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: var(--joplin-background-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: -1px; /* This will make it adjacent to the input box */
+}
+
+.autocomplete-list li {
+    padding: 5px;
+    cursor: pointer;
+    background-color: var(--joplin-background-color);
+    border-bottom: 1px solid var(--joplin-divider-color);
+}
+
+.autocomplete-list li:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-list li:hover,
+.autocomplete-list li.selected {
     background-color: var(--joplin-background-color-hover3);
 }

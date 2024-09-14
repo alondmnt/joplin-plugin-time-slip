@@ -7,6 +7,8 @@ export class TaskManager {
   private panel: string;
   private noteId: string;
   private noteManager: NoteManager;
+  private uniqueTasks: string[] = [];
+  private uniqueProjects: string[] = [];
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -32,11 +34,17 @@ export class TaskManager {
     const lines = note.body.split('\n');
     const openTasks: { [key: string]: { startTime: number; project: string } } = {};
     const completedTasks: { [key: string]: number } = {};
+    const tasksSet = new Set<string>();
+    const projectsSet = new Set<string>();
 
     // Skip the header line
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       const [taskName, project, startTime, endTime, duration] = line.split(',');
+      
+      if (taskName) tasksSet.add(taskName);
+      if (project) projectsSet.add(project);
+
       if (startTime && !endTime) {
         const taskKey = this.getTaskKey(taskName, project);
         openTasks[taskKey] = { startTime: new Date(startTime).getTime(), project };
@@ -47,9 +55,20 @@ export class TaskManager {
       }
     }
 
+    this.uniqueTasks = Array.from(tasksSet);
+    this.uniqueProjects = Array.from(projectsSet);
     this.tasks = openTasks;
     this.updateRunningTasks();
     this.updateCompletedTasks(completedTasks);
+    this.updateAutocompleteLists();
+  }
+
+  private updateAutocompleteLists() {
+    this.joplin.views.panels.postMessage(this.panel, {
+      name: 'updateAutocompleteLists',
+      tasks: this.uniqueTasks,
+      projects: this.uniqueProjects
+    });
   }
 
   private parseDuration(duration: string): number {

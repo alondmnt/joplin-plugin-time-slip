@@ -8,6 +8,8 @@ document.getElementById('timeTracker').appendChild(errorMessageDiv);
 
 let tasks = {};
 let completedTasks = [];
+let uniqueTasks = [];
+let uniqueProjects = [];
 
 startButton.addEventListener('click', function() {
   const taskName = taskNameInput.value.trim();
@@ -48,6 +50,11 @@ webviewApi.onMessage(function(event) {
   } else if (message.name === 'updateCompletedTasks') {
     completedTasks = message.tasks || [];
     updateCompletedTasksDisplay();
+  } else if (message.name === 'updateAutocompleteLists') {
+    uniqueTasks = message.tasks || [];
+    uniqueProjects = message.projects || [];
+    setupAutocomplete(taskNameInput, uniqueTasks);
+    setupAutocomplete(projectNameInput, uniqueProjects);
   } else if (message.name === 'error') {
     errorMessageDiv.textContent = message.message;
     errorMessageDiv.style.color = 'red';
@@ -149,3 +156,114 @@ setInterval(() => {
   updateRunningTasksDisplay();
   updateCompletedTasksDisplay();
 }, 1000);
+
+function setupAutocomplete(input, items) {
+  let autocompleteList = null;
+
+  input.addEventListener('input', updateAutocomplete);
+  input.addEventListener('keydown', handleKeydown);
+
+  function createAutocompleteList() {
+    if (!autocompleteList) {
+      autocompleteList = document.createElement('ul');
+      autocompleteList.className = 'autocomplete-list';
+      autocompleteList.style.display = 'none';
+      input.parentNode.insertBefore(autocompleteList, input.nextSibling);
+    }
+  }
+
+  function updateAutocomplete() {
+    const value = input.value.toLowerCase();
+    if (!value) {
+      if (autocompleteList) {
+        autocompleteList.style.display = 'none';
+      }
+      return;
+    }
+
+    createAutocompleteList();
+    const matches = items.filter(item => item.toLowerCase().includes(value));
+    
+    autocompleteList.innerHTML = '';
+    matches.forEach(match => {
+      const li = document.createElement('li');
+      li.textContent = match;
+      li.addEventListener('click', function() {
+        input.value = this.textContent;
+        autocompleteList.style.display = 'none';
+      });
+      autocompleteList.appendChild(li);
+    });
+
+    autocompleteList.style.display = matches.length > 0 ? 'block' : 'none';
+    selectedIndex = -1;
+  }
+
+  function handleKeydown(e) {
+    if (!autocompleteList || autocompleteList.style.display === 'none') {
+      return;
+    }
+
+    const items = autocompleteList.getElementsByTagName('li');
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex + 1) % items.length;
+      updateSelectedItem();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+      updateSelectedItem();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex !== -1) {
+        input.value = items[selectedIndex].textContent;
+      }
+      autocompleteList.style.display = 'none';
+      if (input === taskNameInput) {
+        projectNameInput.focus();
+      } else if (input === projectNameInput) {
+        startButton.click();
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      input.value = '';
+      autocompleteList.style.display = 'none';
+      input.blur();
+    } else if (e.key === 'Tab') {
+      autocompleteList.style.display = 'none';
+    }
+  }
+
+  function updateSelectedItem() {
+    const items = autocompleteList.getElementsByTagName('li');
+    for (let i = 0; i < items.length; i++) {
+      if (i === selectedIndex) {
+        items[i].classList.add('selected');
+      } else {
+        items[i].classList.remove('selected');
+      }
+    }
+  }
+
+  document.addEventListener('click', function(e) {
+    if (e.target !== input && autocompleteList) {
+      autocompleteList.style.display = 'none';
+    }
+  });
+}
+
+// Add these event listeners outside of the setupAutocomplete function
+taskNameInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    projectNameInput.focus();
+  }
+});
+
+projectNameInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    startButton.click();
+  }
+});

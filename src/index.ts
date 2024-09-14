@@ -10,8 +10,8 @@ joplin.plugins.register({
     await joplin.views.panels.setHtml(panel, `
       <div id="timeTracker">
         <div class="input-group">
-          <input type="text" id="taskName" placeholder="Enter task name">
-          <input type="text" id="projectName" placeholder="Enter project name">
+          <input type="text" id="taskName" placeholder="Task name">
+          <input type="text" id="projectName" placeholder="Project name">
           <button id="startButton">Start</button>
         </div>
         <div id="errorMessage"></div>
