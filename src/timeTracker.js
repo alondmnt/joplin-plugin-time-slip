@@ -228,6 +228,15 @@ function setupAutocomplete(input, items) {
   }
 
   function handleKeydown(e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      input.value = '';
+      if (autocompleteList) {
+        autocompleteList.style.display = 'none';
+      }
+      return;
+    }
+
     if (!autocompleteList || autocompleteList.style.display === 'none') {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -250,24 +259,20 @@ function setupAutocomplete(input, items) {
         break;
       case 'ArrowUp':
         e.preventDefault();
-        selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+        selectedIndex = selectedIndex === -1 ? items.length - 1 : (selectedIndex - 1 + items.length) % items.length;
         updateSelectedItem();
         break;
       case 'Enter':
         e.preventDefault();
         if (selectedIndex !== -1) {
           input.value = items[selectedIndex].textContent;
-          autocompleteList.style.display = 'none';
         }
+        autocompleteList.style.display = 'none';
         if (input === taskNameInput) {
           projectNameInput.focus();
         } else if (input === projectNameInput) {
           startButton.click();
         }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        autocompleteList.style.display = 'none';
         break;
       case 'Tab':
         autocompleteList.style.display = 'none';

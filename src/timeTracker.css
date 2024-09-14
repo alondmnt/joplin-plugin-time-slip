@@ -231,3 +231,11 @@ body {
 .autocomplete-list li.selected {
     background-color: var(--joplin-background-color-hover3);
 }
+
+.autocomplete-list li.selected {
+    background-color: var(--joplin-background-color-hover3);
+}
+
+.autocomplete-list li:not(.selected) {
+    background-color: var(--joplin-background-color);
+}
