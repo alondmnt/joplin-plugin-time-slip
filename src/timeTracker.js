@@ -240,11 +240,7 @@ function setupAutocomplete(input, items) {
     if (!autocompleteList || autocompleteList.style.display === 'none') {
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (input === taskNameInput) {
-          projectNameInput.focus();
-        } else if (input === projectNameInput) {
-          startButton.click();
-        }
+        moveToNextOrSubmit();
       }
       return;
     }
@@ -268,15 +264,22 @@ function setupAutocomplete(input, items) {
           input.value = items[selectedIndex].textContent;
         }
         autocompleteList.style.display = 'none';
-        if (input === taskNameInput) {
-          projectNameInput.focus();
-        } else if (input === projectNameInput) {
-          startButton.click();
-        }
+        moveToNextOrSubmit();
         break;
       case 'Tab':
+        if (selectedIndex !== -1) {
+          input.value = items[selectedIndex].textContent;
+        }
         autocompleteList.style.display = 'none';
         break;
+    }
+  }
+
+  function moveToNextOrSubmit() {
+    if (input === taskNameInput) {
+      projectNameInput.focus();
+    } else if (input === projectNameInput) {
+      startButton.click();
     }
   }
 
@@ -298,7 +301,3 @@ function setupAutocomplete(input, items) {
     }
   });
 }
-
-// Remove these event listeners as they're now handled in the setupAutocomplete function
-// taskNameInput.addEventListener('keydown', function(e) { ... });
-// projectNameInput.addEventListener('keydown', function(e) { ... });
