@@ -1,4 +1,4 @@
-import { formatLocalTime, formatDuration } from './utils';
+import { formatLocalTime, formatDuration, formatDate, formatTime } from './utils';
 import { NoteManager } from './noteManager';
 
 export class TaskManager {
@@ -41,14 +41,15 @@ export class TaskManager {
     // Skip the header line
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
-      const [taskName, project, startTime, endTime, duration] = line.split(',');
+      const [project, taskName, startDate, startTime, endDate, endTime, duration] = line.split(',');
       
       if (taskName) tasksSet.add(taskName);
       if (project) projectsSet.add(project);
 
       if (startTime && !endTime) {
         const taskKey = this.getTaskKey(taskName, project);
-        openTasks[taskKey] = { startTime: new Date(startTime).getTime(), project };
+        const startDateTime = new Date(`${startDate} ${startTime}`);
+        openTasks[taskKey] = { startTime: startDateTime.getTime(), project };
       } else if (duration) {
         const taskKey = this.getTaskKey(taskName, project);
         const durationMs = this.parseDuration(duration);
@@ -99,18 +100,18 @@ export class TaskManager {
         message: `Task "${taskName}" for project "${project}" is already running.` 
       });
     } else {
-      const startTime = Date.now();
-      this.tasks[taskKey] = { startTime, project };
+      const startTime = new Date();
+      this.tasks[taskKey] = { startTime: startTime.getTime(), project };
       this.updateRunningTasks();
 
       const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
       let updatedBody = note.body;
 
       if (!updatedBody.trim()) {
-        updatedBody = "Task Name,Project,Start Time,End Time,Duration\n";
+        updatedBody = "Project,Task,Start date,Start time,End date,End time,Duration\n";
       }
 
-      const startEntry = `${taskName},${project},${formatLocalTime(new Date(startTime))},\n`;
+      const startEntry = `${project},${taskName},${formatDate(startTime)},${formatTime(startTime)}\n`;
       updatedBody += startEntry;
 
       await this.noteManager.updateNote(updatedBody);
@@ -125,8 +126,8 @@ export class TaskManager {
       return;
     }
     const { startTime } = this.tasks[taskKey];
-    const endTime = Date.now();
-    const duration = endTime - startTime;
+    const endTime = new Date();
+    const duration = endTime.getTime() - startTime;
     delete this.tasks[taskKey];
     this.updateRunningTasks();
 
@@ -135,14 +136,15 @@ export class TaskManager {
     const taskStartTime = formatLocalTime(new Date(startTime));
     const lineIndex = lines.findIndex(line => {
       const parts = line.split(',');
-      return parts[0] === taskName && 
-             parts[1] === project && 
-             parts[2].startsWith(taskStartTime.slice(0, 10)) && 
-             parts.length === 4; // Ensure there's no end time
+      return parts[0] === project &&
+             parts[1] === taskName && 
+             parts[2] === formatDate(new Date(startTime)) &&
+             parts[3] === formatTime(new Date(startTime)) &&
+             parts.length === 4; // Changed from 7 to 4
     });
 
     if (lineIndex !== -1) {
-      const updatedLine = `${lines[lineIndex]}${formatLocalTime(new Date(endTime))},${formatDuration(duration)}`;
+      const updatedLine = `${lines[lineIndex]},${formatDate(endTime)},${formatTime(endTime)},${formatDuration(duration)}`;
       lines[lineIndex] = updatedLine;
       const updatedBody = lines.join('\n');
       await this.noteManager.updateNote(updatedBody);
