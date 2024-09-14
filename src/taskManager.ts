@@ -31,17 +31,44 @@ export class TaskManager {
     const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
     const openTasks: { [key: string]: { startTime: number; project: string } } = {};
+    const completedTasks: { [key: string]: number } = {};
 
-    for (const line of lines) {
-      const [taskName, project, startTime, endTime] = line.split(',');
+    // Skip the header line
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const [taskName, project, startTime, endTime, duration] = line.split(',');
       if (startTime && !endTime) {
         const taskKey = this.getTaskKey(taskName, project);
         openTasks[taskKey] = { startTime: new Date(startTime).getTime(), project };
+      } else if (duration) {
+        const taskKey = this.getTaskKey(taskName, project);
+        const durationMs = this.parseDuration(duration);
+        completedTasks[taskKey] = (completedTasks[taskKey] || 0) + durationMs;
       }
     }
 
     this.tasks = openTasks;
     this.updateRunningTasks();
+    this.updateCompletedTasks(completedTasks);
+  }
+
+  private parseDuration(duration: string): number {
+    const [hours, minutes, seconds] = duration.split(':').map(Number);
+    return (hours * 3600 + minutes * 60 + seconds) * 1000;
+  }
+
+  private updateCompletedTasks(completedTasks: { [key: string]: number }) {
+    const sortedTasks = Object.entries(completedTasks)
+      .sort(([, a], [, b]) => b - a)
+      .map(([key, duration]) => {
+        const [taskName, project] = key.split('|');
+        return { taskName, project, duration };
+      });
+
+    this.joplin.views.panels.postMessage(this.panel, { 
+      name: 'updateCompletedTasks', 
+      tasks: sortedTasks 
+    });
   }
 
   async startTask(taskName: string, project: string) {

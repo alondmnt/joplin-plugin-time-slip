@@ -5,6 +5,9 @@ body {
 #timeTracker {
     font-family: Avenir, Arial, sans-serif;
     font-size: var(--joplin-font-size);
+    max-height: calc(100vh - 20px); /* Adjust if needed */
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .input-group {
@@ -49,20 +52,16 @@ body {
 
 #runningTasks {
     margin-top: 5px;
-    border-color: rgb(118, 118, 118);
-    border-width: 1px;
-    border-style: solid;
-    border-radius: 3px;
-    padding: 5px;
     overflow-y: auto;
     font-size: var(--joplin-font-size);
     box-sizing: border-box;
 }
 
-#runningTasks div {
+.running-task {
     margin-bottom: 5px;
     padding: 5px;
     background-color: var(--joplin-background-color);
+    border: 1px solid var(--joplin-divider-color);
     border-radius: 3px;
 }
 
@@ -83,8 +82,8 @@ body {
 }
 
 ::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
+    width: 5px;
+    height: 5px;
 }
 
 ::-webkit-scrollbar-corner {
@@ -106,4 +105,58 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(100, 100, 100, 0.7);
+}
+
+#completedTasks {
+    margin-top: 0px;
+}
+
+#completedTasks table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--joplin-divider-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+#completedTasks th, #completedTasks td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--joplin-divider-color);
+}
+
+#completedTasks tr:last-child td {
+    border-bottom: none;
+}
+
+#completedTasks th {
+    background-color: var(--joplin-background-color-hover3);
+    font-weight: bold;
+}
+
+#completedTasks tr:nth-child(even) {
+    background-color: var(--joplin-background-color);
+}
+
+#completedTasks tr:nth-child(odd) {
+    background-color: var(--joplin-background-color3);
+}
+
+#completedTasks tr:hover {
+    background-color: var(--joplin-background-color-hover3);
+}
+
+.startButton {
+    padding: 3px 8px;
+    background-color: var(--joplin-background-color);
+    color: var(--joplin-color);
+    border: 1px solid rgb(118, 118, 118);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.startButton:hover {
+    background-color: var(--joplin-background-color-hover3);
 }

@@ -7,6 +7,7 @@ errorMessageDiv.id = 'errorMessage';
 document.getElementById('timeTracker').appendChild(errorMessageDiv);
 
 let tasks = {};
+let completedTasks = [];
 
 startButton.addEventListener('click', function() {
   const taskName = taskNameInput.value.trim();
@@ -44,6 +45,9 @@ webviewApi.onMessage(function(event) {
     tasks = message.tasks || {};
     updateRunningTasksDisplay();
     errorMessageDiv.textContent = ''; // Clear any previous error messages
+  } else if (message.name === 'updateCompletedTasks') {
+    completedTasks = message.tasks || [];
+    updateCompletedTasksDisplay();
   } else if (message.name === 'error') {
     errorMessageDiv.textContent = message.message;
     errorMessageDiv.style.color = 'red';
@@ -78,7 +82,7 @@ function updateRunningTasksDisplay() {
       const durationSeconds = Math.floor((now - startTime) / 1000);
       const formattedDuration = formatDuration(durationSeconds);
       const formattedStartTime = formatStartTime(startTime);
-      return `<div>
+      return `<div class="running-task">
         <strong>${taskName}</strong> (${projectName})<br>
         Start: ${formattedStartTime}<br>
         Duration: ${formattedDuration}
@@ -93,8 +97,55 @@ function updateRunningTasksDisplay() {
   runningTasksDiv.innerHTML = tasksHtml || 'No tasks running';
 }
 
+function updateCompletedTasksDisplay() {
+  let completedTasksDiv = document.getElementById('completedTasks');
+  if (!completedTasksDiv) {
+    completedTasksDiv = document.createElement('div');
+    completedTasksDiv.id = 'completedTasks';
+    document.getElementById('timeTracker').appendChild(completedTasksDiv);
+  }
+
+  let tasksHtml = ''; // Removed the heading
+
+  if (completedTasks.length > 0) {
+    tasksHtml += '<table><tr><th>Task</th><th>Project</th><th>Duration</th><th>Action</th></tr>';
+    completedTasks.forEach(({ taskName, project, duration }) => {
+      const formattedDuration = formatDuration(Math.floor(duration / 1000));
+      tasksHtml += `<tr>
+        <td>${taskName}</td>
+        <td>${project}</td>
+        <td>${formattedDuration}</td>
+        <td><button class="startButton" data-task="${taskName}" data-project="${project}">Start</button></td>
+      </tr>`;
+    });
+    tasksHtml += '</table>';
+  } else {
+    tasksHtml += '<p>No completed tasks</p>';
+  }
+  
+  completedTasksDiv.innerHTML = tasksHtml;
+
+  // Add event listeners to the new start buttons
+  const startButtons = completedTasksDiv.querySelectorAll('.startButton');
+  startButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      const taskName = this.getAttribute('data-task');
+      const projectName = this.getAttribute('data-project');
+      webviewApi.postMessage({
+        name: 'start',
+        taskName: taskName,
+        projectName: projectName
+      });
+    });
+  });
+}
+
 // Initial update
 updateRunningTasksDisplay();
+updateCompletedTasksDisplay();
 
 // Periodic update
-setInterval(updateRunningTasksDisplay, 1000);
+setInterval(() => {
+  updateRunningTasksDisplay();
+  updateCompletedTasksDisplay();
+}, 1000);
