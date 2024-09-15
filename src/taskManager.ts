@@ -9,8 +9,10 @@ export class TaskManager {
   private noteManager: NoteManager;
   private uniqueTasks: string[] = [];
   private uniqueProjects: string[] = [];
-  private completedTasks: { taskName: string; project: string; duration: number }[] = [];
+  private completedTasks: { taskName: string; project: string; duration: number; endTime: number }[] = [];
   private logNotes: { id: string; title: string }[] = [];
+  private currentStartDate: string | null = null;
+  private currentEndDate: string | null = null;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -32,7 +34,7 @@ export class TaskManager {
       this.panel,
       {
         name: 'updateRunningTasks',
-        tasks: this.tasks
+        tasks: this.tasks // This should contain all running tasks, regardless of the date filter
       });
   }
 
@@ -45,49 +47,78 @@ export class TaskManager {
     const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
     const openTasks: { [key: string]: { startTime: number; project: string } } = {};
-    const completedTasks: { [key: string]: number } = {};
+    const completedTasks: { [key: string]: { taskName: string; project: string; duration: number; startTime: number; endTime: number } } = {};
     const tasksSet = new Set<string>();
     const projectsSet = new Set<string>();
+
+    const startDate = this.currentStartDate ? new Date(this.currentStartDate) : null;
+    const endDate = this.currentEndDate ? new Date(this.currentEndDate) : null;
+
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    if (endDate) endDate.setHours(23, 59, 59, 999);
 
     // Skip the header line
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
-      const [project, taskName, startDate, startTime, endDate, endTime, duration] = line.split(',');
+      const [project, taskName, startDateStr, startTimeStr, endDateStr, endTimeStr, duration] = line.split(',');
       
       if (taskName) tasksSet.add(taskName);
       if (project) projectsSet.add(project);
 
-      if (startTime && !endTime) {
-        const taskKey = this.getTaskKey(taskName, project);
-        const startDateTime = new Date(`${startDate} ${startTime}`);
-        openTasks[taskKey] = { startTime: startDateTime.getTime(), project };
-      } else if (duration) {
-        const taskKey = this.getTaskKey(taskName, project);
+      if (startTimeStr && endTimeStr) {
+        const startDateTime = new Date(`${startDateStr} ${startTimeStr}`);
+        const endDateTime = new Date(`${endDateStr} ${endTimeStr}`);
         const durationMs = this.parseDuration(duration);
-        completedTasks[taskKey] = (completedTasks[taskKey] || 0) + durationMs;
+
+        // Check if the task falls within the date range
+        if (this.isTaskInDateRange(startDateTime, endDateTime, startDate, endDate)) {
+          const taskKey = this.getTaskKey(taskName, project);
+          if (taskKey in completedTasks) {
+            completedTasks[taskKey].duration += durationMs;
+            completedTasks[taskKey].startTime = Math.min(completedTasks[taskKey].startTime, startDateTime.getTime());
+            completedTasks[taskKey].endTime = Math.max(completedTasks[taskKey].endTime, endDateTime.getTime());
+          } else {
+            completedTasks[taskKey] = {
+              taskName,
+              project,
+              duration: durationMs,
+              startTime: startDateTime.getTime(),
+              endTime: endDateTime.getTime()
+            };
+          }
+        }
+      } else if (startTimeStr) {
+        // Handle running tasks
+        const taskKey = this.getTaskKey(taskName, project);
+        const startDateTime = new Date(`${startDateStr} ${startTimeStr}`);
+        openTasks[taskKey] = { startTime: startDateTime.getTime(), project };
       }
     }
 
-  // Only update if there are changes
-  if (JSON.stringify(this.tasks) !== JSON.stringify(openTasks)) {
+    // Update tasks
     this.tasks = openTasks;
     this.updateRunningTasks();
-  }
 
-  if (JSON.stringify(this.completedTasks) !== JSON.stringify(completedTasks)) {
-    this.updateCompletedTasks(completedTasks);
-  }
+    // Update completed tasks
+    this.updateCompletedTasks(Object.values(completedTasks));
 
-  // Only update if there are changes
-  if (JSON.stringify(this.uniqueTasks) !== JSON.stringify(Array.from(tasksSet)) ||
-      JSON.stringify(this.uniqueProjects) !== JSON.stringify(Array.from(projectsSet))) {
+    // Update autocomplete lists
     this.uniqueTasks = Array.from(tasksSet);
     this.uniqueProjects = Array.from(projectsSet);
     this.updateAutocompleteLists();
-  }
 
     // Scan for log notes
     await this.getLogNotes();
+  }
+
+  private isTaskInDateRange(taskStart: Date, taskEnd: Date, rangeStart: Date | null, rangeEnd: Date | null): boolean {
+    if (!rangeStart && !rangeEnd) return true;
+    if (rangeStart && rangeEnd) {
+      return (taskStart <= rangeEnd && taskEnd >= rangeStart);
+    }
+    if (rangeStart) return taskEnd >= rangeStart;
+    if (rangeEnd) return taskStart <= rangeEnd;
+    return false; // This line should never be reached
   }
 
   async getLogNotes() {
@@ -126,13 +157,8 @@ export class TaskManager {
     return (hours * 3600 + minutes * 60 + seconds) * 1000;
   }
 
-  private updateCompletedTasks(completedTasks: { [key: string]: number }) {
-    this.completedTasks = Object.entries(completedTasks)
-      .sort(([, a], [, b]) => b - a)
-      .map(([key, duration]) => {
-        const [taskName, project] = key.split('|');
-        return { taskName, project, duration };
-      });
+  private updateCompletedTasks(completedTasks: Array<{ taskName: string; project: string; duration: number; endTime: number }>) {
+    this.completedTasks = completedTasks.sort((a, b) => b.endTime - a.endTime);
 
     this.joplin.views.panels.postMessage(this.panel, { 
       name: 'updateCompletedTasks', 
@@ -194,14 +220,17 @@ export class TaskManager {
 
     const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
-    const taskStartTime = formatLocalTime(new Date(startTime));
+    const startDate = formatDate(new Date(startTime));
+    const startTimeFormatted = formatTime(new Date(startTime));
+    
+    // Find the last matching open task entry
     const lineIndex = lines.findIndex(line => {
       const parts = line.split(',');
       return parts[0] === project &&
              parts[1] === taskName && 
-             parts[2] === formatDate(new Date(startTime)) &&
-             parts[3] === formatTime(new Date(startTime)) &&
-             parts.length === 4; // Changed from 7 to 4
+             parts[2] === startDate &&
+             parts[3] === startTimeFormatted &&
+             parts.length === 4; // This ensures we're only matching open tasks
     });
 
     if (lineIndex !== -1) {
@@ -217,6 +246,16 @@ export class TaskManager {
       });
     }
 
+    // Rescan the entire note without date filtering
+    const currentStartDate = this.currentStartDate;
+    const currentEndDate = this.currentEndDate;
+    this.currentStartDate = null;
+    this.currentEndDate = null;
+    await this.scanNoteAndUpdateTasks();
+    // Restore the date filter
+    this.currentStartDate = currentStartDate;
+    this.currentEndDate = currentEndDate;
+    // Apply the filter again by rescanning with the restored date range
     await this.scanNoteAndUpdateTasks();
   }
 
@@ -240,5 +279,18 @@ export class TaskManager {
       name: 'updateLogNotes',
       notes: this.logNotes
     });
+  }
+
+  async filterCompletedTasks(startDate: string, endDate: string): Promise<Array<{ taskName: string; project: string; duration: number; endTime: number }>> {
+    this.currentStartDate = startDate;
+    this.currentEndDate = endDate;
+    await this.scanNoteAndUpdateTasks();
+    return this.completedTasks;
+  }
+
+  async setDateRange(startDate: string | null, endDate: string | null) {
+    this.currentStartDate = startDate;
+    this.currentEndDate = endDate;
+    await this.scanNoteAndUpdateTasks();
   }
 }

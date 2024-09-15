@@ -38,6 +38,7 @@ joplin.plugins.register({
         noteId = message.noteId;
         await noteManager.setNoteId(noteId);
         await taskManager.setNoteId(noteId);
+        await taskManager.setDateRange(message.startDate, message.endDate);
         await taskManager.scanNoteAndUpdateTasks();
 
       } else if (message.name === 'start') {
@@ -58,12 +59,27 @@ joplin.plugins.register({
         }
 
       } else if (message.name === 'requestInitialData') {
-        console.log('requestInitialData');
         const initialData = await taskManager.getInitialData();
         await joplin.views.panels.postMessage(panel, {
           name: 'initialData',
           ...initialData
         });
+      }
+
+      if (message.name === 'applyDateFilter') {
+        if (noteId) {
+          await taskManager.setDateRange(message.startDate, message.endDate);
+          const filteredTasks = await taskManager.filterCompletedTasks(message.startDate, message.endDate);
+          await joplin.views.panels.postMessage(panel, {
+            name: 'updateCompletedTasks',
+            tasks: filteredTasks,
+          });
+        } else {
+          await joplin.views.panels.postMessage(panel, { 
+            name: 'error', 
+            message: 'Please select a note first.' 
+          });
+        }
       }
     });
   },

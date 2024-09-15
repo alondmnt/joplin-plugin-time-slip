@@ -3,11 +3,11 @@ export function formatLocalTime(date: Date): string {
 }
 
 export function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  return date.toLocaleDateString('en-CA'); // This format gives YYYY-MM-DD
 }
 
 export function formatTime(date: Date): string {
-  return date.toTimeString().split(' ')[0];
+  return date.toLocaleTimeString('en-US', { hour12: false });
 }
 
 export function formatDuration(durationMs: number): string {
@@ -18,7 +18,7 @@ export function formatDuration(durationMs: number): string {
   
   const pad = (num: number) => num.toString().padStart(2, '0');
   
-  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  return `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
 }
 
 export function debounce(func: Function, wait: number) {

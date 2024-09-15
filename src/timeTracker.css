@@ -52,7 +52,6 @@ body {
 }
 
 #runningTasks {
-    margin-top: 5px;
     overflow-y: auto;
     font-size: var(--joplin-font-size);
     box-sizing: border-box;
@@ -243,11 +242,31 @@ body {
 #noteSelector {
     width: 100%;
     min-height: 23px;
-    margin-top: 5px;
-    margin-bottom: 5px;
-    padding: 0px;
+    padding: 0 5px;
     color: var(--joplin-color);
     background-color: var(--joplin-background-color);
     border: 1px solid rgb(118, 118, 118);
     border-radius: 3px;
+    font-family: Avenir, Arial, sans-serif;
+    font-size: var(--joplin-font-size);
+}
+
+/* Date range filter styles */
+.date-range {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    gap: 5px;
+}
+
+.date-range input[type="date"] {
+    flex: 1;
+    min-height: 23px;
+    padding: 0 5px;
+    color: var(--joplin-color);
+    background-color: var(--joplin-background-color);
+    border: 1px solid rgb(118, 118, 118);
+    border-radius: 3px;
+    font-family: Avenir, Arial, sans-serif;
+    font-size: var(--joplin-font-size);
 }

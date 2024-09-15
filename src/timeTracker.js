@@ -136,6 +136,10 @@ function updateRunningTasksDisplay() {
   runningTasksDiv.innerHTML = tasksHtml || 'No tasks running';
 }
 
+let isUpdatingDateFilter = false;
+let lastStartDate = '';
+let lastEndDate = '';
+
 function updateCompletedTasksDisplay() {
   let completedTasksDiv = document.getElementById('completedTasks');
   if (!completedTasksDiv) {
@@ -144,7 +148,15 @@ function updateCompletedTasksDisplay() {
     document.getElementById('timeTracker').appendChild(completedTasksDiv);
   }
 
-  let tasksHtml = ''; // Removed the heading
+  // Add date range inputs
+  let dateRangeHtml = `
+    <div class="date-range">
+      <input type="date" id="startDate">
+      <input type="date" id="endDate">
+    </div>
+  `;
+
+  let tasksHtml = dateRangeHtml;
 
   if (completedTasks.length > 0) {
     tasksHtml += '<table><tr><th>Task</th><th>Project</th><th>Duration</th><th>Action</th></tr>';
@@ -177,7 +189,97 @@ function updateCompletedTasksDisplay() {
       });
     });
   });
+
+  // Add event listeners for date inputs
+  const startDateInput = document.getElementById('startDate');
+  const endDateInput = document.getElementById('endDate');
+  
+  startDateInput.addEventListener('change', () => applyDateFilter(startDateInput, endDateInput));
+  endDateInput.addEventListener('change', () => applyDateFilter(startDateInput, endDateInput));
+
+  // Set the date inputs to their last known values
+  if (lastStartDate) startDateInput.value = lastStartDate;
+  if (lastEndDate) endDateInput.value = lastEndDate;
+
+  // Initialize date inputs if they haven't been set before
+  if (!lastStartDate || !lastEndDate) {
+    initializeDateInputs();
+  }
 }
+
+function applyDateFilter(startDateInput, endDateInput) {
+  const startDate = startDateInput.value || null;
+  const endDate = endDateInput.value || null;
+  
+  if (startDate !== lastStartDate || endDate !== lastEndDate) {
+    lastStartDate = startDate;
+    lastEndDate = endDate;
+    
+    webviewApi.postMessage({
+      name: 'applyDateFilter',
+      startDate: startDate,
+      endDate: endDate
+    });
+  }
+}
+
+// Initialize date inputs with default values
+function initializeDateInputs() {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 7); // A week ago
+
+  const endDateInput = document.getElementById('endDate');
+  const startDateInput = document.getElementById('startDate');
+
+  lastEndDate = endDate.toLocaleDateString('en-CA'); // This format gives YYYY-MM-DD in local time
+  lastStartDate = startDate.toLocaleDateString('en-CA');
+
+  endDateInput.value = lastEndDate;
+  startDateInput.value = lastStartDate;
+
+  // Trigger initial filter
+  applyDateFilter(startDateInput, endDateInput);
+}
+
+webviewApi.onMessage(function(event) {
+  const message = event.message;
+  if (message.name === 'updateRunningTasks') {
+    tasks = message.tasks || {};
+    updateRunningTasksDisplay();
+    errorMessageDiv.textContent = ''; // Clear any previous error messages
+
+  } else if (message.name === 'updateCompletedTasks') {
+    completedTasks = message.tasks || [];
+    updateCompletedTasksDisplay();
+    isUpdatingDateFilter = false;
+
+  } else if (message.name === 'updateAutocompleteLists') {
+    uniqueTasks = message.tasks || [];
+    uniqueProjects = message.projects || [];
+    setupAutocomplete(taskNameInput, uniqueTasks);
+    setupAutocomplete(projectNameInput, uniqueProjects);
+
+  } else if (message.name === 'error') {
+    errorMessageDiv.textContent = message.message;
+    errorMessageDiv.style.color = 'red';
+
+  } else if (message.name === 'initialData') {
+    // Handle initial data
+    tasks = message.runningTasks || {};
+    completedTasks = message.completedTasks || [];
+    uniqueTasks = message.uniqueTasks || [];
+    uniqueProjects = message.uniqueProjects || [];
+    updateRunningTasksDisplay();
+    updateCompletedTasksDisplay();
+    setupAutocomplete(taskNameInput, uniqueTasks);
+    setupAutocomplete(projectNameInput, uniqueProjects);
+    updateNoteSelector(message.logNotes);
+
+  } else if (message.name === 'updateLogNotes') {
+    updateNoteSelector(message.notes);
+  }
+});
 
 // Initial update
 updateRunningTasksDisplay();
@@ -314,7 +416,9 @@ noteSelector.addEventListener('change', function() {
   if (selectedNoteId) {
     webviewApi.postMessage({
       name: 'changeNote',
-      noteId: selectedNoteId
+      noteId: selectedNoteId,
+      startDate: lastStartDate,
+      endDate: lastEndDate
     });
   }
 });
@@ -339,6 +443,10 @@ function updateNoteSelector(logNotes) {
       noteSelector.value = previousNoteId;
     }
   }
+}
+
+function formatDateTime(date) {
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 }
 
 // Wait for 1 second before requesting initial data
