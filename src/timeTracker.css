@@ -239,3 +239,15 @@ body {
 .autocomplete-list li:not(.selected) {
     background-color: var(--joplin-background-color);
 }
+
+#noteSelector {
+    width: 100%;
+    min-height: 23px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 0px;
+    color: var(--joplin-color);
+    background-color: var(--joplin-background-color);
+    border: 1px solid rgb(118, 118, 118);
+    border-radius: 3px;
+}

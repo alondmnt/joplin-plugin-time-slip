@@ -5,7 +5,6 @@ import { NoteManager } from './noteManager';
 joplin.plugins.register({
   onStart: async function() {
     const panel = await joplin.views.panels.create('timeTrackerPanel');
-    const noteId = '5a71f2e79e8541c7bdc12a46aeb88de1';
 
     await joplin.views.panels.setHtml(panel, `
       <div id="timeTracker">
@@ -14,6 +13,9 @@ joplin.plugins.register({
           <input type="text" id="projectName" placeholder="Project name">
           <button id="startButton">Start</button>
         </div>
+        <select id="noteSelector">
+          <option value="">Tag a note with "time-log"</option>
+        </select>
         <div id="errorMessage"></div>
         <div id="runningTasks"></div>
       </div>
@@ -22,23 +24,41 @@ joplin.plugins.register({
     await joplin.views.panels.addScript(panel, 'timeTracker.css');
     await joplin.views.panels.addScript(panel, 'timeTracker.js');
 
+    let noteId = '';
     const noteManager = new NoteManager(joplin, noteId, panel);
     const taskManager = new TaskManager(joplin, panel, noteId, noteManager);
     noteManager.setTaskManager(taskManager);
-    // wait for 3 seconds before initializing
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    await taskManager.initialize();
 
-    await joplin.workspace.onSyncComplete(() => taskManager.scanNoteAndUpdateTasks());
+    await joplin.workspace.onSyncComplete(taskManager.scanNoteAndUpdateTasks);
     await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
     await joplin.workspace.onNoteSelectionChange(noteManager.handleNoteSelectionChange);
 
     await joplin.views.panels.onMessage(panel, async (message) => {
-      if (message.name === 'start') {
-        await taskManager.startTask(message.taskName, message.projectName);
+      if (message.name === 'changeNote') {
+        noteId = message.noteId;
+        await noteManager.setNoteId(noteId);
+        await taskManager.setNoteId(noteId);
+        await taskManager.scanNoteAndUpdateTasks();
+
+      } else if (message.name === 'start') {
+        if (noteId) {
+          await taskManager.startTask(message.taskName, message.projectName);
+        } else {
+          await joplin.views.panels.postMessage(panel, { 
+            name: 'error', 
+            message: 'Please select a note first.' 
+          });
+        }
+
       } else if (message.name === 'stop') {
-        await taskManager.stopTask(message.taskName, message.projectName);
+        if (noteId) {
+          await taskManager.stopTask(message.taskName, message.projectName);
+        } else {
+          console.error('No note selected. Cannot stop task.');
+        }
+
       } else if (message.name === 'requestInitialData') {
+        console.log('requestInitialData');
         const initialData = await taskManager.getInitialData();
         await joplin.views.panels.postMessage(panel, {
           name: 'initialData',

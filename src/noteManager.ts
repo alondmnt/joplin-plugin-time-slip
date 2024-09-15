@@ -16,10 +16,13 @@ export class NoteManager {
     this.taskManager = taskManager;
   }
 
+  setNoteId(noteId: string) {
+    this.noteId = noteId;
+  }
+
   async updateNote(content: string) {
     try {
       await this.joplin.data.put(['notes', this.noteId], null, { body: content });
-      console.log('Note updated successfully');
 
       const currentNote = await this.joplin.workspace.selectedNote();
       if (currentNote && currentNote.id === this.noteId) {
@@ -45,6 +48,8 @@ export class NoteManager {
     const currentNote = await this.joplin.workspace.selectedNote();
     if (currentNote && currentNote.id === this.noteId) {
       await this.taskManager.scanNoteAndUpdateTasks();
+    } else {
+      await this.taskManager.getLogNotes();
     }
   }
 }

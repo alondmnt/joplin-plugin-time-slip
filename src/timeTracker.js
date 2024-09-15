@@ -11,15 +11,11 @@ let completedTasks = [];
 let uniqueTasks = [];
 let uniqueProjects = [];
 
-// Add this function at the beginning of the file
 function requestInitialData() {
   webviewApi.postMessage({
     name: 'requestInitialData'
   });
 }
-
-// Call this function immediately when the script loads
-requestInitialData();
 
 startButton.addEventListener('click', function() {
   const taskName = taskNameInput.value.trim();
@@ -32,6 +28,7 @@ startButton.addEventListener('click', function() {
     });
     taskNameInput.value = '';
     projectNameInput.value = '';
+
   } else {
     console.log('Task name or project name is empty, not sending message');
   }
@@ -57,17 +54,21 @@ webviewApi.onMessage(function(event) {
     tasks = message.tasks || {};
     updateRunningTasksDisplay();
     errorMessageDiv.textContent = ''; // Clear any previous error messages
+
   } else if (message.name === 'updateCompletedTasks') {
     completedTasks = message.tasks || [];
     updateCompletedTasksDisplay();
+
   } else if (message.name === 'updateAutocompleteLists') {
     uniqueTasks = message.tasks || [];
     uniqueProjects = message.projects || [];
     setupAutocomplete(taskNameInput, uniqueTasks);
     setupAutocomplete(projectNameInput, uniqueProjects);
+
   } else if (message.name === 'error') {
     errorMessageDiv.textContent = message.message;
     errorMessageDiv.style.color = 'red';
+
   } else if (message.name === 'initialData') {
     // Handle initial data
     tasks = message.runningTasks || {};
@@ -78,6 +79,10 @@ webviewApi.onMessage(function(event) {
     updateCompletedTasksDisplay();
     setupAutocomplete(taskNameInput, uniqueTasks);
     setupAutocomplete(projectNameInput, uniqueProjects);
+    updateNoteSelector(message.logNotes);
+
+  } else if (message.name === 'updateLogNotes') {
+    updateNoteSelector(message.notes);
   }
 });
 
@@ -181,7 +186,7 @@ updateCompletedTasksDisplay();
 // Periodic update
 setInterval(() => {
   updateRunningTasksDisplay();
-  updateCompletedTasksDisplay();
+  // updateCompletedTasksDisplay();
 }, 1000);
 
 function setupAutocomplete(input, items) {
@@ -301,3 +306,40 @@ function setupAutocomplete(input, items) {
     }
   });
 }
+
+const noteSelector = document.getElementById('noteSelector');
+
+noteSelector.addEventListener('change', function() {
+  const selectedNoteId = this.value;
+  if (selectedNoteId) {
+    webviewApi.postMessage({
+      name: 'changeNote',
+      noteId: selectedNoteId
+    });
+  }
+});
+
+function updateNoteSelector(logNotes) {
+  const previousNoteId = noteSelector.value;
+  const updateValue = (logNotes.length > 0 && previousNoteId === '');
+  noteSelector.innerHTML = '<option value="">Tag a note with "time-log"</option>';
+  logNotes.forEach(note => {
+    const option = document.createElement('option');
+    option.value = note.id;
+    option.textContent = note.title;
+    noteSelector.appendChild(option);
+  });
+  if (logNotes.length > 0) {
+    if (updateValue) {
+      noteSelector.value = logNotes[0].id;
+      // Trigger the change event to initialize the note
+      noteSelector.dispatchEvent(new Event('change'));
+
+    } else {
+      noteSelector.value = previousNoteId;
+    }
+  }
+}
+
+// Wait for 1 second before requesting initial data
+setTimeout(requestInitialData, 1000);
