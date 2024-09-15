@@ -1,3 +1,8 @@
+#taskName, #projectName, #startButton, .running-task, .stopButton, .startButton, #noteSelector, .date-range input[type="date"],
+.autocomplete-list, #completedTasks table, #completedTasks th, #completedTasks td {
+    border-color: rgb(118, 118, 118);
+}
+
 body {
     padding: 10px;
     overflow-y: auto;
@@ -22,7 +27,6 @@ body {
     min-height: 23px;
     color: var(--joplin-color);
     background-color: var(--joplin-background-color);
-    border-color: rgb(118, 118, 118);
     border-width: 1px;
     border-radius: 3px;
     border-style: solid;
@@ -34,7 +38,6 @@ body {
     cursor: pointer;
     color: var(--joplin-color);
     background-color: var(--joplin-background-color);
-    border-color: rgb(118, 118, 118);
     border-width: 1px;
     border-radius: 3px;
     border-spacing: 5px;
@@ -61,10 +64,17 @@ body {
     margin-bottom: 5px;
     padding: 5px;
     background-color: var(--joplin-background-color);
-    border: 1px solid var(--joplin-divider-color);
+    border-width: 1px;
+    border-style: solid;
     border-radius: 3px;
     display: flex;
     flex-direction: column;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.running-task:hover {
+    background-color: var(--joplin-background-color-hover3);
+    border-color: var(--joplin-color);
 }
 
 .running-task-header {
@@ -108,7 +118,6 @@ body {
     padding: 3px 8px;
     background-color: var(--joplin-background-color);
     color: var(--joplin-color);
-    border-color: rgb(118, 118, 118);
     border-width: 1px;
     border-radius: 3px;
     border-style: solid;
@@ -153,7 +162,8 @@ body {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    border: 1px solid var(--joplin-divider-color);
+    border-width: 1px;
+    border-style: solid;
     border-radius: 3px;
     overflow: hidden;
 }
@@ -161,7 +171,8 @@ body {
 #completedTasks th, #completedTasks td {
     padding: 5px;
     text-align: left;
-    border-bottom: 1px solid var(--joplin-divider-color);
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
 }
 
 #completedTasks tr:last-child td {
@@ -189,7 +200,8 @@ body {
     padding: 3px 8px;
     background-color: var(--joplin-background-color);
     color: var(--joplin-color);
-    border: 1px solid rgb(118, 118, 118);
+    border-width: 1px;
+    border-style: solid;
     border-radius: 3px;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -201,7 +213,8 @@ body {
 
 .autocomplete-list {
     position: absolute;
-    border: 2px solid var(--joplin-divider-color);
+    border-width: 2px;
+    border-style: solid;
     border-top: none;
     z-index: 99;
     top: 100%;
@@ -212,14 +225,15 @@ body {
     overflow-y: auto;
     background-color: var(--joplin-background-color);
     box-shadow: 0 2px 5px rgba(180, 180, 180, 0.2);
-    margin-top: -1px; /* This will make it adjacent to the input box */
+    margin-top: -1px;
 }
 
 .autocomplete-list li {
     padding: 5px;
     cursor: pointer;
     background-color: var(--joplin-background-color);
-    border-bottom: 1px solid var(--joplin-divider-color);
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
 }
 
 .autocomplete-list li:last-child {
@@ -245,7 +259,8 @@ body {
     padding: 0 5px;
     color: var(--joplin-color);
     background-color: var(--joplin-background-color);
-    border: 1px solid rgb(118, 118, 118);
+    border-width: 1px;
+    border-style: solid;
     border-radius: 3px;
     font-family: Avenir, Arial, sans-serif;
     font-size: var(--joplin-font-size);
@@ -265,7 +280,8 @@ body {
     padding: 0 5px;
     color: var(--joplin-color);
     background-color: var(--joplin-background-color);
-    border: 1px solid rgb(118, 118, 118);
+    border-width: 1px;
+    border-style: solid;
     border-radius: 3px;
     font-family: Avenir, Arial, sans-serif;
     font-size: var(--joplin-font-size);
