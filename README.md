@@ -1,5 +1,10 @@
-# Joplin Plugin
+# ⏱️ Time Slip
 
-This is your new Joplin plugin. It is suggested that you use this README file to document your plugin.
+Time Slip is a [Joplin](https://joplinapp.org/) plugin that allows you to track the time you spend on tasks.
 
-For information on how to build or publish the plugin, please see [GENERATOR_DOC.md](./GENERATOR_DOC.md)
+## Features
+
+- Manage multiple concurrent timers, saved into multiple logs
+- Sync completed and running tasks across devices
+- Display summaries by date ranges
+- Logs are saved in Joplin notes in a simple-to-export CSV format
