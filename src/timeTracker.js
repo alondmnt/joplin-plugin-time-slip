@@ -132,8 +132,7 @@ runningTasksDiv.addEventListener('click', function(event) {
 
 function updateNoteSelector(logNotes) {
   const previousNoteId = noteSelector.value;
-  const updateValue = (logNotes.length > 0 && previousNoteId === '');
-  noteSelector.innerHTML = (logNotes.length > 0) ? '' : `<option value="">Tag a note with "time-slip"</option>`;
+  noteSelector.innerHTML = (logNotes.length > 0) ? '' : `<option value="">Tag a note with a time-slip tag</option>`;
   logNotes.forEach(note => {
     const option = document.createElement('option');
     option.value = note.id;
@@ -141,15 +140,15 @@ function updateNoteSelector(logNotes) {
     noteSelector.appendChild(option);
   });
   if (logNotes.length > 0) {
-    if (updateValue) {
+    if (previousNoteId && logNotes.some(note => note.id === previousNoteId)) {
+      noteSelector.value = previousNoteId;
+    } else {
       noteSelector.value = logNotes[0].id;
       // Trigger the change event to initialize the note
       noteSelector.dispatchEvent(new Event('change'));
-      // Re-setup autocomplete for task and project inputs
-      updateAutocompleteLists();
-    } else {
-      noteSelector.value = previousNoteId;
     }
+  } else {
+    noteSelector.dispatchEvent(new Event('change'));
   }
 }
 
@@ -184,7 +183,12 @@ webviewApi.onMessage(function(event) {
     updateCompletedTasksDisplay();
     updateAutocompleteLists();
     updateNoteSelector(message.logNotes);
-
+    
+    // If there's a default note ID, select it
+    if (message.defaultNoteId && noteSelector.querySelector(`option[value="${message.defaultNoteId}"]`)) {
+      noteSelector.value = message.defaultNoteId;
+      noteSelector.dispatchEvent(new Event('change'));
+    }
   } else if (message.name === 'updateLogNotes') {
     updateNoteSelector(message.notes);
   }
@@ -452,14 +456,12 @@ function setupAutocomplete(input, items) {
 
 noteSelector.addEventListener('change', function() {
   const selectedNoteId = this.value;
-  if (selectedNoteId) {
-    webviewApi.postMessage({
-      name: 'changeNote',
-      noteId: selectedNoteId,
-      startDate: lastStartDate,
-      endDate: lastEndDate
-    });
-  }
+  webviewApi.postMessage({
+    name: 'changeNote',
+    noteId: selectedNoteId,
+    startDate: lastStartDate,
+    endDate: lastEndDate
+  });
 });
 
 function formatDateTime(date) {

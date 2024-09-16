@@ -1,10 +1,10 @@
 import joplin from 'api';
-import { SettingItemType } from 'api/types';
+import { SettingItemType } from 'api/types'
 
 export async function registerSettings() {
   await joplin.settings.registerSection('timeslip', {
-      label: 'Time Slip',
-      iconName: 'fas fa-stopwatch',
+    label: 'Time Slip',
+    iconName: 'fas fa-stopwatch',
   });
 
   await joplin.settings.registerSettings({
@@ -13,8 +13,27 @@ export async function registerSettings() {
       type: SettingItemType.String,
       section: 'timeslip',
       public: true,
-      label: 'Log Note Tag',
-      description: 'Tag for notes that contain time slips. Default: time-slip.',
-    }
+      label: 'Log note tag',
+      description: 'Tag for notes that contain time tracking logs. Default: time-slip',
+    },
+    'timeslip.defaultNoteId': {
+      value: '',
+      type: SettingItemType.String,
+      section: 'timeslip',
+      public: true,
+      label: 'Default log note ID',
+    },
   });
+}
+
+export async function getLogNoteTag(): Promise<string> {
+  return await joplin.settings.value('timeslip.logNoteTag');
+}
+
+export async function getDefaultNoteId(): Promise<string> {
+  return await joplin.settings.value('timeslip.defaultNoteId');
+}
+
+export async function setDefaultNoteId(noteId: string): Promise<void> {
+  await joplin.settings.setValue('timeslip.defaultNoteId', noteId);
 }

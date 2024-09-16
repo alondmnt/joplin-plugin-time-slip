@@ -1,14 +1,15 @@
 import joplin from 'api';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
-import { registerSettings } from './settings';
+import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId } from './settings';
 
 joplin.plugins.register({
   onStart: async function() {
     await registerSettings();
-    const logNoteTag = await joplin.settings.value('timeslip.logNoteTag');
+    const logNoteTag = await getLogNoteTag();
+    const defaultNoteId = await getDefaultNoteId();
 
-    const panel = await joplin.views.panels.create('timeTrackerPanel');
+    const panel = await joplin.views.panels.create('timeSlipPanel');
 
     await joplin.views.panels.setHtml(panel, `
       <div id="timeTracker">
@@ -18,7 +19,7 @@ joplin.plugins.register({
           <button id="startButton">Start</button>
         </div>
         <select id="noteSelector">
-          <option value="">Tag a note with "${logNoteTag}"</option>
+          <option value="">Tag a note with a time-slip tag</option>
         </select>
         <div id="errorMessage"></div>
         <div id="runningTasks"></div>
@@ -28,11 +29,17 @@ joplin.plugins.register({
     await joplin.views.panels.addScript(panel, 'timeTracker.css');
     await joplin.views.panels.addScript(panel, 'timeTracker.js');
 
-    let noteId = '';
+    let noteId = defaultNoteId;
     const noteManager = new NoteManager(joplin, noteId, panel);
     const taskManager = new TaskManager(joplin, panel, noteId, noteManager);
     noteManager.setTaskManager(taskManager);
     await taskManager.setLogNoteTag(logNoteTag);
+
+    if (noteId) {
+      await noteManager.setNoteId(noteId);
+      await taskManager.setNoteId(noteId);
+      await taskManager.scanNoteAndUpdateTasks();
+    }
 
     await joplin.workspace.onSyncComplete(taskManager.scanNoteAndUpdateTasks);
     await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
@@ -51,8 +58,16 @@ joplin.plugins.register({
         noteId = message.noteId;
         await noteManager.setNoteId(noteId);
         await taskManager.setNoteId(noteId);
-        await taskManager.setDateRange(message.startDate, message.endDate);
-        await taskManager.scanNoteAndUpdateTasks();
+        if (noteId) {
+          await taskManager.setDateRange(message.startDate, message.endDate);
+          await taskManager.scanNoteAndUpdateTasks();
+          // Save the selected note ID as the default
+          await setDefaultNoteId(noteId);
+        } else {
+          // Clear tasks when no note is selected
+          await taskManager.clearTasks();
+          await setDefaultNoteId('');
+        }
 
       } else if (message.name === 'start') {
         if (noteId) {

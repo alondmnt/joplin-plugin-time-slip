@@ -267,7 +267,8 @@ export class TaskManager {
       completedTasks: this.completedTasks,
       uniqueTasks: this.uniqueTasks,
       uniqueProjects: this.uniqueProjects,
-      logNotes: await this.getLogNotes()
+      logNotes: await this.getLogNotes(),
+      defaultNoteId: this.noteId
     };
   }
 
@@ -299,4 +300,10 @@ export class TaskManager {
     await this.scanNoteAndUpdateTasks();
   }
 
+  async clearTasks() {
+    this.tasks = {};
+    this.completedTasks = [];
+    this.updateRunningTasks();
+    this.updateCompletedTasks([]);
+  }
 }
