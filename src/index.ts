@@ -45,6 +45,20 @@ joplin.plugins.register({
     await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
     await joplin.workspace.onNoteSelectionChange(noteManager.handleNoteSelectionChange);
 
+    await joplin.commands.register({
+      name: 'timeslip.togglePanel',
+      label: 'Toggle Time Slip Panel',
+      iconName: 'fas fa-stopwatch',
+      execute: async () => {
+        const isVisible = await joplin.views.panels.visible(panel);
+        if (isVisible) {
+          await joplin.views.panels.hide(panel);
+        } else {
+          await joplin.views.panels.show(panel);
+        }
+      }
+    });
+
     await joplin.settings.onChange(async (event) => {
       if (event.keys.includes('timeslip.logNoteTag')) {
         const newLogNoteTag = await joplin.settings.value('timeslip.logNoteTag');
