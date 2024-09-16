@@ -23,6 +23,14 @@ export async function registerSettings() {
       public: true,
       label: 'Default log note ID',
     },
+    'timeslip.defaultDateRange': {
+      value: 7,
+      type: SettingItemType.Int,
+      section: 'timeslip',
+      public: true,
+      label: 'Default date range (days)',
+      description: 'The default number of days to show in the completed tasks list. Default: 7',
+    },
   });
 }
 
@@ -36,4 +44,8 @@ export async function getDefaultNoteId(): Promise<string> {
 
 export async function setDefaultNoteId(noteId: string): Promise<void> {
   await joplin.settings.setValue('timeslip.defaultNoteId', noteId);
+}
+
+export async function getDefaultDateRange(): Promise<number> {
+  return await joplin.settings.value('timeslip.defaultDateRange');
 }

@@ -157,11 +157,13 @@ webviewApi.onMessage(function(event) {
   } else if (message.name === 'updateCompletedTasks') {
     completedTasks = message.tasks || [];
     updateCompletedTasksDisplay();
+
   } else if (message.name === 'updateAutocompleteLists') {
     console.log('Received new autocomplete lists', message.tasks, message.projects);
     uniqueTasks = message.tasks || [];
     uniqueProjects = message.projects || [];
     updateAutocompleteLists();
+
   } else if (message.name === 'error') {
     errorMessageDiv.textContent = message.message;
     errorMessageDiv.style.color = 'red';
@@ -182,8 +184,27 @@ webviewApi.onMessage(function(event) {
       noteSelector.value = message.defaultNoteId;
       noteSelector.dispatchEvent(new Event('change'));
     }
+
   } else if (message.name === 'updateLogNotes') {
     updateNoteSelector(message.notes);
+
+  } else if (message.name === 'defaultDateRange') {
+    const defaultDateRange = message.value;
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - defaultDateRange);
+
+    const endDateInput = document.getElementById('endDate');
+    const startDateInput = document.getElementById('startDate');
+
+    lastEndDate = endDate.toLocaleDateString('en-CA');
+    lastStartDate = startDate.toLocaleDateString('en-CA');
+
+    endDateInput.value = lastEndDate;
+    startDateInput.value = lastStartDate;
+
+    // Trigger initial filter
+    applyDateFilter(startDateInput, endDateInput);
   }
 });
 
@@ -269,21 +290,10 @@ function applyDateFilter(startDateInput, endDateInput) {
 
 // Initialize date inputs with default values
 function initializeDateInputs() {
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - 7); // A week ago
-
-  const endDateInput = document.getElementById('endDate');
-  const startDateInput = document.getElementById('startDate');
-
-  lastEndDate = endDate.toLocaleDateString('en-CA'); // This format gives YYYY-MM-DD in local time
-  lastStartDate = startDate.toLocaleDateString('en-CA');
-
-  endDateInput.value = lastEndDate;
-  startDateInput.value = lastStartDate;
-
-  // Trigger initial filter
-  applyDateFilter(startDateInput, endDateInput);
+  // Use the defaultDateRange setting
+  webviewApi.postMessage({
+    name: 'getDefaultDateRange'
+  });
 }
 
 // Initial update

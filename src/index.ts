@@ -1,7 +1,7 @@
 import joplin from 'api';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
-import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId } from './settings';
+import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getDefaultDateRange } from './settings';
 
 joplin.plugins.register({
   onStart: async function() {
@@ -92,9 +92,8 @@ joplin.plugins.register({
           name: 'initialData',
           ...initialData
         });
-      }
 
-      if (message.name === 'applyDateFilter') {
+      } else if (message.name === 'applyDateFilter') {
         if (noteId) {
           await taskManager.setDateRange(message.startDate, message.endDate);
           await taskManager.scanNoteAndUpdateTasks();
@@ -105,6 +104,13 @@ joplin.plugins.register({
             message: 'Please select a note first.' 
           });
         }
+
+      } else if (message.name === 'getDefaultDateRange') {
+        const defaultDateRange = await getDefaultDateRange();
+        await joplin.views.panels.postMessage(panel, {
+          name: 'defaultDateRange',
+          value: defaultDateRange
+        });
       }
     });
   },
