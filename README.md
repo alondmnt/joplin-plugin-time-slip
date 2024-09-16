@@ -5,7 +5,7 @@ Time Slip is a [Joplin](https://joplinapp.org/) plugin that allows you to track 
 ## Features
 
 - Manage multiple concurrent timers, saved into multiple logs
-- Sync completed and running tasks across devices
+- Sync completed and running tasks across devices (including mobile)
 - Display summaries by date ranges
 - Logs are saved in Joplin notes in a simple-to-export CSV format
 
