@@ -72,11 +72,6 @@ body {
     transition: background-color 0.2s, border-color 0.2s;
 }
 
-.running-task:hover {
-    background-color: var(--joplin-background-color-hover3);
-    border-color: var(--joplin-color);
-}
-
 .running-task-header {
     display: flex;
     justify-content: space-between;

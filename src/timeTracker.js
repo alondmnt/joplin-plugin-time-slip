@@ -58,13 +58,14 @@ webviewApi.onMessage(function(event) {
   } else if (message.name === 'updateCompletedTasks') {
     completedTasks = message.tasks || [];
     updateCompletedTasksDisplay();
+    isUpdatingDateFilter = false;
 
   } else if (message.name === 'updateAutocompleteLists') {
+    console.log('Received new autocomplete lists', message.tasks, message.projects);
     uniqueTasks = message.tasks || [];
     uniqueProjects = message.projects || [];
-    setupAutocomplete(taskNameInput, uniqueTasks);
-    setupAutocomplete(projectNameInput, uniqueProjects);
-
+    // Instead of calling setupAutocomplete here, we'll update the lists used by the existing autocomplete
+    // The next time updateAutocomplete is called, it will use the new lists
   } else if (message.name === 'error') {
     errorMessageDiv.textContent = message.message;
     errorMessageDiv.style.color = 'red';
@@ -242,45 +243,6 @@ function initializeDateInputs() {
   applyDateFilter(startDateInput, endDateInput);
 }
 
-webviewApi.onMessage(function(event) {
-  const message = event.message;
-  if (message.name === 'updateRunningTasks') {
-    tasks = message.tasks || {};
-    updateRunningTasksDisplay();
-    errorMessageDiv.textContent = ''; // Clear any previous error messages
-
-  } else if (message.name === 'updateCompletedTasks') {
-    completedTasks = message.tasks || [];
-    updateCompletedTasksDisplay();
-    isUpdatingDateFilter = false;
-
-  } else if (message.name === 'updateAutocompleteLists') {
-    uniqueTasks = message.tasks || [];
-    uniqueProjects = message.projects || [];
-    setupAutocomplete(taskNameInput, uniqueTasks);
-    setupAutocomplete(projectNameInput, uniqueProjects);
-
-  } else if (message.name === 'error') {
-    errorMessageDiv.textContent = message.message;
-    errorMessageDiv.style.color = 'red';
-
-  } else if (message.name === 'initialData') {
-    // Handle initial data
-    tasks = message.runningTasks || {};
-    completedTasks = message.completedTasks || [];
-    uniqueTasks = message.uniqueTasks || [];
-    uniqueProjects = message.uniqueProjects || [];
-    updateRunningTasksDisplay();
-    updateCompletedTasksDisplay();
-    setupAutocomplete(taskNameInput, uniqueTasks);
-    setupAutocomplete(projectNameInput, uniqueProjects);
-    updateNoteSelector(message.logNotes);
-
-  } else if (message.name === 'updateLogNotes') {
-    updateNoteSelector(message.notes);
-  }
-});
-
 // Initial update
 updateRunningTasksDisplay();
 updateCompletedTasksDisplay();
@@ -295,16 +257,22 @@ function setupAutocomplete(input, items) {
   let autocompleteList = null;
   let selectedIndex = -1;
 
+  // Remove any existing event listeners
+  input.removeEventListener('input', updateAutocomplete);
+  input.removeEventListener('keydown', handleKeydown);
+
+  // Add new event listeners
   input.addEventListener('input', updateAutocomplete);
   input.addEventListener('keydown', handleKeydown);
 
   function createAutocompleteList() {
-    if (!autocompleteList) {
-      autocompleteList = document.createElement('ul');
-      autocompleteList.className = 'autocomplete-list';
-      autocompleteList.style.display = 'none';
-      input.parentNode.insertBefore(autocompleteList, input.nextSibling);
+    if (autocompleteList) {
+      autocompleteList.remove(); // Remove existing list if present
     }
+    autocompleteList = document.createElement('ul');
+    autocompleteList.className = 'autocomplete-list';
+    autocompleteList.style.display = 'none';
+    input.parentNode.insertBefore(autocompleteList, input.nextSibling);
   }
 
   function updateAutocomplete() {
@@ -317,7 +285,9 @@ function setupAutocomplete(input, items) {
     }
 
     createAutocompleteList();
-    const matches = items.filter(item => item.toLowerCase().includes(value));
+    // Use the current items array, not a closure variable
+    const currentItems = input === taskNameInput ? uniqueTasks : uniqueProjects;
+    const matches = currentItems.filter(item => item.toLowerCase().includes(value));
     
     autocompleteList.innerHTML = '';
     matches.forEach(match => {
@@ -438,7 +408,9 @@ function updateNoteSelector(logNotes) {
       noteSelector.value = logNotes[0].id;
       // Trigger the change event to initialize the note
       noteSelector.dispatchEvent(new Event('change'));
-
+      // Re-setup autocomplete for task and project inputs
+      setupAutocomplete(taskNameInput, uniqueTasks);
+      setupAutocomplete(projectNameInput, uniqueProjects);
     } else {
       noteSelector.value = previousNoteId;
     }

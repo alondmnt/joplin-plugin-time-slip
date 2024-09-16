@@ -145,6 +145,7 @@ export class TaskManager {
   }
 
   private updateAutocompleteLists() {
+    console.log('Updating autocomplete lists', this.uniqueTasks, this.uniqueProjects);
     this.joplin.views.panels.postMessage(this.panel, {
       name: 'updateAutocompleteLists',
       tasks: this.uniqueTasks,
