@@ -1,6 +1,7 @@
 #taskName, #projectName, #startButton, .running-task, .stopButton, .startButton, #noteSelector, .date-range input[type="date"],
 .autocomplete-list, #completedTasks table, #completedTasks th, #completedTasks td {
     border-color: rgb(118, 118, 118);
+    font-size: var(--joplin-font-size);
 }
 
 body {
@@ -89,7 +90,7 @@ body {
 }
 
 .running-task-project {
-    font-size: 0.9em;
+    font-size: calc(var(--joplin-font-size) * 0.8);
     color: var(--joplin-color-faded);
 }
 
@@ -187,10 +188,6 @@ body {
     background-color: var(--joplin-background-color3);
 }
 
-#completedTasks tr:hover {
-    background-color: var(--joplin-background-color-hover3);
-}
-
 .startButton {
     padding: 3px 8px;
     background-color: var(--joplin-background-color);
@@ -208,7 +205,7 @@ body {
 
 .autocomplete-list {
     position: absolute;
-    border-width: 2px;
+    border-width: 1px;
     border-style: solid;
     border-top: none;
     z-index: 99;
