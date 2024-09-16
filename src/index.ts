@@ -32,7 +32,7 @@ joplin.plugins.register({
     const noteManager = new NoteManager(joplin, noteId, panel);
     const taskManager = new TaskManager(joplin, panel, noteId, noteManager);
     noteManager.setTaskManager(taskManager);
-    taskManager.setLogNoteTag(logNoteTag);
+    await taskManager.setLogNoteTag(logNoteTag);
 
     await joplin.workspace.onSyncComplete(taskManager.scanNoteAndUpdateTasks);
     await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
@@ -41,7 +41,8 @@ joplin.plugins.register({
     await joplin.settings.onChange(async (event) => {
       if (event.keys.includes('timeslip.logNoteTag')) {
         const newLogNoteTag = await joplin.settings.value('timeslip.logNoteTag');
-        taskManager.setLogNoteTag(newLogNoteTag);
+        await taskManager.setLogNoteTag(newLogNoteTag);
+        noteId = ''; // Reset the selected note
       }
     });
 
@@ -81,11 +82,8 @@ joplin.plugins.register({
       if (message.name === 'applyDateFilter') {
         if (noteId) {
           await taskManager.setDateRange(message.startDate, message.endDate);
-          const filteredTasks = await taskManager.filterCompletedTasks(message.startDate, message.endDate);
-          await joplin.views.panels.postMessage(panel, {
-            name: 'updateCompletedTasks',
-            tasks: filteredTasks,
-          });
+          await taskManager.scanNoteAndUpdateTasks();
+
         } else {
           await joplin.views.panels.postMessage(panel, { 
             name: 'error', 

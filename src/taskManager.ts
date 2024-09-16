@@ -42,6 +42,7 @@ export class TaskManager {
   async scanNoteAndUpdateTasks() {
     if (!this.noteId) {
       console.log('No note selected. Skipping scan.');
+      this.updateCompletedTasks([]);
       return;
     }
 
@@ -159,7 +160,7 @@ export class TaskManager {
   }
 
   private updateCompletedTasks(completedTasks: Array<{ taskName: string; project: string; duration: number; endTime: number }>) {
-    this.completedTasks = completedTasks.sort((a, b) => b.endTime - a.endTime);
+    this.completedTasks = completedTasks.sort((a, b) => b.duration - a.duration);
 
     this.joplin.views.panels.postMessage(this.panel, { 
       name: 'updateCompletedTasks', 
@@ -275,18 +276,21 @@ export class TaskManager {
     await this.scanNoteAndUpdateTasks();
   }
 
+  async setLogNoteTag(tag: string) {
+    this.logNoteTag = tag;
+    this.noteId = '';
+    this.tasks = {};
+    this.completedTasks = [];
+    this.updateRunningTasks();
+    this.updateCompletedTasks([]);
+    await this.getLogNotes();
+  }
+
   private updateLogNotes() {
     this.joplin.views.panels.postMessage(this.panel, {
       name: 'updateLogNotes',
       notes: this.logNotes
     });
-  }
-
-  async filterCompletedTasks(startDate: string, endDate: string): Promise<Array<{ taskName: string; project: string; duration: number; endTime: number }>> {
-    this.currentStartDate = startDate;
-    this.currentEndDate = endDate;
-    await this.scanNoteAndUpdateTasks();
-    return this.completedTasks;
   }
 
   async setDateRange(startDate: string | null, endDate: string | null) {
@@ -295,8 +299,4 @@ export class TaskManager {
     await this.scanNoteAndUpdateTasks();
   }
 
-  setLogNoteTag(tag: string) {
-    this.logNoteTag = tag;
-    this.getLogNotes();
-  }
 }
