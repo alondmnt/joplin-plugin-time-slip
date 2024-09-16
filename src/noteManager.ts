@@ -45,11 +45,6 @@ export class NoteManager {
   }
 
   handleNoteSelectionChange = async () => {
-    const currentNote = await this.joplin.workspace.selectedNote();
-    if (currentNote && currentNote.id === this.noteId) {
-      await this.taskManager.scanNoteAndUpdateTasks();
-    } else {
-      await this.taskManager.getLogNotes();
-    }
+    await this.taskManager.getLogNotes();
   }
 }

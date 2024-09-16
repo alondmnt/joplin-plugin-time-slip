@@ -41,7 +41,7 @@ joplin.plugins.register({
       await taskManager.scanNoteAndUpdateTasks();
     }
 
-    await joplin.workspace.onSyncComplete(taskManager.scanNoteAndUpdateTasks);
+    await joplin.workspace.onSyncComplete(async () => await taskManager.scanNoteAndUpdateTasks());
     await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
     await joplin.workspace.onNoteSelectionChange(noteManager.handleNoteSelectionChange);
 
