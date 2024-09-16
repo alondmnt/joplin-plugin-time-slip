@@ -13,6 +13,7 @@ export class TaskManager {
   private logNotes: { id: string; title: string }[] = [];
   private currentStartDate: string | null = null;
   private currentEndDate: string | null = null;
+  private logNoteTag: string = 'time-slip';
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -125,7 +126,7 @@ export class TaskManager {
     const tags = await this.joplin.data.get(['tags'], {
       fields: ['id', 'title'],
     });
-    const timeTag = tags.items.find(tag => tag.title === 'time-log');
+    const timeTag = tags.items.find(tag => tag.title === this.logNoteTag);
     if (timeTag) {
       const notes = await this.joplin.data.get(
         ['tags', timeTag.id, 'notes'],
@@ -137,7 +138,7 @@ export class TaskManager {
       this.updateLogNotes();
 
     } else {
-      console.log('No time-log tag found');
+      console.log(`No ${this.logNoteTag} tag found`);
       this.logNotes = [];
       this.updateLogNotes();
     }
@@ -145,7 +146,6 @@ export class TaskManager {
   }
 
   private updateAutocompleteLists() {
-    console.log('Updating autocomplete lists', this.uniqueTasks, this.uniqueProjects);
     this.joplin.views.panels.postMessage(this.panel, {
       name: 'updateAutocompleteLists',
       tasks: this.uniqueTasks,
@@ -293,5 +293,10 @@ export class TaskManager {
     this.currentStartDate = startDate;
     this.currentEndDate = endDate;
     await this.scanNoteAndUpdateTasks();
+  }
+
+  setLogNoteTag(tag: string) {
+    this.logNoteTag = tag;
+    this.getLogNotes();
   }
 }

@@ -1,9 +1,13 @@
 import joplin from 'api';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
+import { registerSettings } from './settings';
 
 joplin.plugins.register({
   onStart: async function() {
+    await registerSettings();
+    const logNoteTag = await joplin.settings.value('timeslip.logNoteTag');
+
     const panel = await joplin.views.panels.create('timeTrackerPanel');
 
     await joplin.views.panels.setHtml(panel, `
@@ -14,7 +18,7 @@ joplin.plugins.register({
           <button id="startButton">Start</button>
         </div>
         <select id="noteSelector">
-          <option value="">Tag a note with "time-log"</option>
+          <option value="">Tag a note with "${logNoteTag}"</option>
         </select>
         <div id="errorMessage"></div>
         <div id="runningTasks"></div>
@@ -28,10 +32,18 @@ joplin.plugins.register({
     const noteManager = new NoteManager(joplin, noteId, panel);
     const taskManager = new TaskManager(joplin, panel, noteId, noteManager);
     noteManager.setTaskManager(taskManager);
+    taskManager.setLogNoteTag(logNoteTag);
 
     await joplin.workspace.onSyncComplete(taskManager.scanNoteAndUpdateTasks);
     await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
     await joplin.workspace.onNoteSelectionChange(noteManager.handleNoteSelectionChange);
+
+    await joplin.settings.onChange(async (event) => {
+      if (event.keys.includes('timeslip.logNoteTag')) {
+        const newLogNoteTag = await joplin.settings.value('timeslip.logNoteTag');
+        taskManager.setLogNoteTag(newLogNoteTag);
+      }
+    });
 
     await joplin.views.panels.onMessage(panel, async (message) => {
       if (message.name === 'changeNote') {

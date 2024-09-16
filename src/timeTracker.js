@@ -133,7 +133,7 @@ runningTasksDiv.addEventListener('click', function(event) {
 function updateNoteSelector(logNotes) {
   const previousNoteId = noteSelector.value;
   const updateValue = (logNotes.length > 0 && previousNoteId === '');
-  noteSelector.innerHTML = '<option value="">Tag a note with "time-log"</option>';
+  noteSelector.innerHTML = (logNotes.length > 0) ? '' : `<option value="">Tag a note with "time-slip"</option>`;
   logNotes.forEach(note => {
     const option = document.createElement('option');
     option.value = note.id;
