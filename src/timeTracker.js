@@ -11,13 +11,13 @@ let tasks = {};
 let completedTasks = [];
 let uniqueTasks = [];
 let uniqueProjects = [];
-let isUpdatingRunningTasks = false;
-let isUpdatingDateFilter = false;
 let lastStartDate = '';
 let lastEndDate = '';
 
 let removeTaskAutocomplete = null;
 let removeProjectAutocomplete = null;
+
+let runningTasksInterval;
 
 function requestInitialData() {
   webviewApi.postMessage({
@@ -43,22 +43,17 @@ function formatStartTime(timestamp) {
   return `${hours}:${minutes}:${seconds}`;
 }
 
-function updateRunningTasksLoop() {
-  if (isUpdatingRunningTasks) {
-    updateRunningTasksDisplay();
-    requestAnimationFrame(updateRunningTasksLoop);
-  }
-}
-
 function startUpdatingRunningTasks() {
-  if (!isUpdatingRunningTasks) {
-    isUpdatingRunningTasks = true;
-    updateRunningTasksLoop();
+  if (!runningTasksInterval) {
+    runningTasksInterval = setInterval(updateRunningTasksDisplay, 1000);
   }
 }
 
 function stopUpdatingRunningTasks() {
-  isUpdatingRunningTasks = false;
+  if (runningTasksInterval) {
+    clearInterval(runningTasksInterval);
+    runningTasksInterval = null;
+  }
 }
 
 function updateRunningTasksDisplay() {
@@ -162,8 +157,6 @@ webviewApi.onMessage(function(event) {
   } else if (message.name === 'updateCompletedTasks') {
     completedTasks = message.tasks || [];
     updateCompletedTasksDisplay();
-    isUpdatingDateFilter = false;
-
   } else if (message.name === 'updateAutocompleteLists') {
     console.log('Received new autocomplete lists', message.tasks, message.projects);
     uniqueTasks = message.tasks || [];
