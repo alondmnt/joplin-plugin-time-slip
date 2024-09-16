@@ -5,16 +5,98 @@ const runningTasksDiv = document.getElementById('runningTasks');
 const errorMessageDiv = document.createElement('div');
 errorMessageDiv.id = 'errorMessage';
 document.getElementById('timeTracker').appendChild(errorMessageDiv);
+const noteSelector = document.getElementById('noteSelector');
 
 let tasks = {};
 let completedTasks = [];
 let uniqueTasks = [];
 let uniqueProjects = [];
+let isUpdatingRunningTasks = false;
+let isUpdatingDateFilter = false;
+let lastStartDate = '';
+let lastEndDate = '';
+
+let removeTaskAutocomplete = null;
+let removeProjectAutocomplete = null;
 
 function requestInitialData() {
   webviewApi.postMessage({
     name: 'requestInitialData'
   });
+}
+
+function formatDuration(seconds) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  
+  const pad = (num) => num.toString().padStart(2, '0');
+  
+  return `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
+}
+
+function formatStartTime(timestamp) {
+  const date = new Date(timestamp);
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  const seconds = date.getSeconds().toString().padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
+}
+
+function updateRunningTasksLoop() {
+  if (isUpdatingRunningTasks) {
+    updateRunningTasksDisplay();
+    requestAnimationFrame(updateRunningTasksLoop);
+  }
+}
+
+function startUpdatingRunningTasks() {
+  if (!isUpdatingRunningTasks) {
+    isUpdatingRunningTasks = true;
+    updateRunningTasksLoop();
+  }
+}
+
+function stopUpdatingRunningTasks() {
+  isUpdatingRunningTasks = false;
+}
+
+function updateRunningTasksDisplay() {
+  const now = Date.now();
+  let tasksHtml = '';
+  
+  try {
+    tasksHtml = Object.entries(tasks).map(([key, { startTime, project }]) => {
+      const [taskName, projectName] = key.split('|');
+      const durationSeconds = Math.floor((now - startTime) / 1000);
+      const formattedDuration = formatDuration(durationSeconds);
+      const formattedStartTime = formatStartTime(startTime);
+      return `<div class="running-task">
+        <div class="running-task-header">
+          <div class="running-task-title-container">
+            <span class="running-task-title">${taskName}</span>
+            <span class="running-task-project">${projectName}</span>
+          </div>
+          <button class="stopButton" data-task="${taskName}" data-project="${projectName}">Stop</button>
+        </div>
+        <div class="running-task-info">
+          <span class="running-task-start-time">${formattedStartTime}</span>
+          <span class="running-task-duration">${formattedDuration}</span>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (error) {
+    console.error('Error while generating tasks HTML:', error);
+    tasksHtml = 'Error displaying tasks';
+  }
+  
+  runningTasksDiv.innerHTML = tasksHtml || 'No tasks running';
+
+  if (Object.keys(tasks).length > 0) {
+    startUpdatingRunningTasks();
+  } else {
+    stopUpdatingRunningTasks();
+  }
 }
 
 startButton.addEventListener('click', function() {
@@ -48,6 +130,29 @@ runningTasksDiv.addEventListener('click', function(event) {
   }
 });
 
+function updateNoteSelector(logNotes) {
+  const previousNoteId = noteSelector.value;
+  const updateValue = (logNotes.length > 0 && previousNoteId === '');
+  noteSelector.innerHTML = '<option value="">Tag a note with "time-log"</option>';
+  logNotes.forEach(note => {
+    const option = document.createElement('option');
+    option.value = note.id;
+    option.textContent = note.title;
+    noteSelector.appendChild(option);
+  });
+  if (logNotes.length > 0) {
+    if (updateValue) {
+      noteSelector.value = logNotes[0].id;
+      // Trigger the change event to initialize the note
+      noteSelector.dispatchEvent(new Event('change'));
+      // Re-setup autocomplete for task and project inputs
+      updateAutocompleteLists();
+    } else {
+      noteSelector.value = previousNoteId;
+    }
+  }
+}
+
 webviewApi.onMessage(function(event) {
   const message = event.message;
   if (message.name === 'updateRunningTasks') {
@@ -64,8 +169,7 @@ webviewApi.onMessage(function(event) {
     console.log('Received new autocomplete lists', message.tasks, message.projects);
     uniqueTasks = message.tasks || [];
     uniqueProjects = message.projects || [];
-    // Instead of calling setupAutocomplete here, we'll update the lists used by the existing autocomplete
-    // The next time updateAutocomplete is called, it will use the new lists
+    updateAutocompleteLists();
   } else if (message.name === 'error') {
     errorMessageDiv.textContent = message.message;
     errorMessageDiv.style.color = 'red';
@@ -78,8 +182,7 @@ webviewApi.onMessage(function(event) {
     uniqueProjects = message.uniqueProjects || [];
     updateRunningTasksDisplay();
     updateCompletedTasksDisplay();
-    setupAutocomplete(taskNameInput, uniqueTasks);
-    setupAutocomplete(projectNameInput, uniqueProjects);
+    updateAutocompleteLists();
     updateNoteSelector(message.logNotes);
 
   } else if (message.name === 'updateLogNotes') {
@@ -87,67 +190,11 @@ webviewApi.onMessage(function(event) {
   }
 });
 
-function formatDuration(seconds) {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-  
-  const pad = (num) => num.toString().padStart(2, '0');
-  
-  return `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
-}
-
-function formatStartTime(timestamp) {
-  const date = new Date(timestamp);
-  const hours = date.getHours().toString().padStart(2, '0');
-  const minutes = date.getMinutes().toString().padStart(2, '0');
-  const seconds = date.getSeconds().toString().padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
-}
-
-function updateRunningTasksDisplay() {
-  const now = Date.now();
-  let tasksHtml = '';
-  
-  try {
-    tasksHtml = Object.entries(tasks).map(([key, { startTime, project }]) => {
-      const [taskName, projectName] = key.split('|');
-      const durationSeconds = Math.floor((now - startTime) / 1000);
-      const formattedDuration = formatDuration(durationSeconds);
-      const formattedStartTime = formatStartTime(startTime);
-      return `<div class="running-task">
-        <div class="running-task-header">
-          <div class="running-task-title-container">
-            <span class="running-task-title">${taskName}</span>
-            <span class="running-task-project">${projectName}</span>
-          </div>
-          <button class="stopButton" data-task="${taskName}" data-project="${projectName}">Stop</button>
-        </div>
-        <div class="running-task-info">
-          <span class="running-task-start-time">${formattedStartTime}</span>
-          <span class="running-task-duration">${formattedDuration}</span>
-        </div>
-      </div>`;
-    }).join('');
-  } catch (error) {
-    console.error('Error while generating tasks HTML:', error);
-    tasksHtml = 'Error displaying tasks';
-  }
-  
-  runningTasksDiv.innerHTML = tasksHtml || 'No tasks running';
-}
-
-let isUpdatingDateFilter = false;
-let lastStartDate = '';
-let lastEndDate = '';
-
 function updateCompletedTasksDisplay() {
-  let completedTasksDiv = document.getElementById('completedTasks');
-  if (!completedTasksDiv) {
-    completedTasksDiv = document.createElement('div');
-    completedTasksDiv.id = 'completedTasks';
-    document.getElementById('timeTracker').appendChild(completedTasksDiv);
-  }
+  const timeTrackerDiv = document.getElementById('timeTracker');
+  const completedTasksDiv = document.getElementById('completedTasks') || document.createElement('div');
+  completedTasksDiv.id = 'completedTasks';
+  timeTrackerDiv.appendChild(completedTasksDiv);
 
   // Add date range inputs
   let dateRangeHtml = `
@@ -177,18 +224,17 @@ function updateCompletedTasksDisplay() {
   
   completedTasksDiv.innerHTML = tasksHtml;
 
-  // Add event listeners to the new start buttons
-  const startButtons = completedTasksDiv.querySelectorAll('.startButton');
-  startButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const taskName = this.getAttribute('data-task');
-      const projectName = this.getAttribute('data-project');
+  // Use event delegation for start buttons
+  completedTasksDiv.addEventListener('click', function(event) {
+    if (event.target.classList.contains('startButton')) {
+      const taskName = event.target.getAttribute('data-task');
+      const projectName = event.target.getAttribute('data-project');
       webviewApi.postMessage({
         name: 'start',
         taskName: taskName,
         projectName: projectName
       });
-    });
+    }
   });
 
   // Add event listeners for date inputs
@@ -247,27 +293,49 @@ function initializeDateInputs() {
 updateRunningTasksDisplay();
 updateCompletedTasksDisplay();
 
-// Periodic update
-setInterval(() => {
-  updateRunningTasksDisplay();
-  // updateCompletedTasksDisplay();
-}, 1000);
+function updateAutocompleteLists() {
+  if (removeTaskAutocomplete) removeTaskAutocomplete();
+  if (removeProjectAutocomplete) removeProjectAutocomplete();
+
+  removeTaskAutocomplete = setupAutocomplete(taskNameInput, uniqueTasks);
+  removeProjectAutocomplete = setupAutocomplete(projectNameInput, uniqueProjects);
+}
+
+// Use this function instead of calling setupAutocomplete directly
+updateAutocompleteLists();
 
 function setupAutocomplete(input, items) {
   let autocompleteList = null;
   let selectedIndex = -1;
 
-  // Remove any existing event listeners
-  input.removeEventListener('input', updateAutocomplete);
-  input.removeEventListener('keydown', handleKeydown);
+  // Store event listeners so we can remove them later
+  const listeners = {
+    input: null,
+    keydown: null,
+    documentClick: null
+  };
 
-  // Add new event listeners
-  input.addEventListener('input', updateAutocomplete);
-  input.addEventListener('keydown', handleKeydown);
+  function removeListeners() {
+    if (listeners.input) input.removeEventListener('input', listeners.input);
+    if (listeners.keydown) input.removeEventListener('keydown', listeners.keydown);
+    if (listeners.documentClick) document.removeEventListener('click', listeners.documentClick);
+  }
+
+  // Remove any existing listeners before setting up new ones
+  removeListeners();
+
+  // Set up new listeners
+  listeners.input = updateAutocomplete;
+  listeners.keydown = handleKeydown;
+  listeners.documentClick = documentClickHandler;
+
+  input.addEventListener('input', listeners.input);
+  input.addEventListener('keydown', listeners.keydown);
+  document.addEventListener('click', listeners.documentClick);
 
   function createAutocompleteList() {
     if (autocompleteList) {
-      autocompleteList.remove(); // Remove existing list if present
+      autocompleteList.remove();
     }
     autocompleteList = document.createElement('ul');
     autocompleteList.className = 'autocomplete-list';
@@ -372,14 +440,15 @@ function setupAutocomplete(input, items) {
     }
   }
 
-  document.addEventListener('click', function(e) {
+  function documentClickHandler(e) {
     if (e.target !== input && autocompleteList) {
       autocompleteList.style.display = 'none';
     }
-  });
-}
+  }
 
-const noteSelector = document.getElementById('noteSelector');
+  // Return a function that can be used to clean up this autocomplete instance
+  return removeListeners;
+}
 
 noteSelector.addEventListener('change', function() {
   const selectedNoteId = this.value;
@@ -392,30 +461,6 @@ noteSelector.addEventListener('change', function() {
     });
   }
 });
-
-function updateNoteSelector(logNotes) {
-  const previousNoteId = noteSelector.value;
-  const updateValue = (logNotes.length > 0 && previousNoteId === '');
-  noteSelector.innerHTML = '<option value="">Tag a note with "time-log"</option>';
-  logNotes.forEach(note => {
-    const option = document.createElement('option');
-    option.value = note.id;
-    option.textContent = note.title;
-    noteSelector.appendChild(option);
-  });
-  if (logNotes.length > 0) {
-    if (updateValue) {
-      noteSelector.value = logNotes[0].id;
-      // Trigger the change event to initialize the note
-      noteSelector.dispatchEvent(new Event('change'));
-      // Re-setup autocomplete for task and project inputs
-      setupAutocomplete(taskNameInput, uniqueTasks);
-      setupAutocomplete(projectNameInput, uniqueProjects);
-    } else {
-      noteSelector.value = previousNoteId;
-    }
-  }
-}
 
 function formatDateTime(date) {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
