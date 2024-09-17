@@ -178,6 +178,8 @@ webviewApi.onMessage(function(event) {
     updateCompletedTasksDisplay();
     updateAutocompleteLists();
     updateNoteSelector(message.logNotes);
+    initializeDateInputs();
+    updateAutocompleteLists();
     
     // If there's a default note ID, select it
     if (message.defaultNoteId && noteSelector.querySelector(`option[value="${message.defaultNoteId}"]`)) {
@@ -209,20 +211,9 @@ webviewApi.onMessage(function(event) {
 });
 
 function updateCompletedTasksDisplay() {
-  const timeTrackerDiv = document.getElementById('timeTracker');
-  const completedTasksDiv = document.getElementById('completedTasks') || document.createElement('div');
-  completedTasksDiv.id = 'completedTasks';
-  timeTrackerDiv.appendChild(completedTasksDiv);
+  const completedTasksDiv = document.getElementById('completedTasks');
 
-  // Add date range inputs
-  let dateRangeHtml = `
-    <div class="date-range">
-      <input type="date" id="startDate">
-      <input type="date" id="endDate">
-    </div>
-  `;
-
-  let tasksHtml = dateRangeHtml;
+  let tasksHtml = '';
 
   if (completedTasks.length > 0) {
     tasksHtml += '<table><tr><th>Task</th><th>Project</th><th>Duration</th><th>Action</th></tr>';
@@ -254,22 +245,20 @@ function updateCompletedTasksDisplay() {
       });
     }
   });
+}
 
-  // Add event listeners for date inputs
+// Initialize date inputs and add event listeners
+function initializeDateInputs() {
   const startDateInput = document.getElementById('startDate');
   const endDateInput = document.getElementById('endDate');
-  
+
   startDateInput.addEventListener('change', () => applyDateFilter(startDateInput, endDateInput));
   endDateInput.addEventListener('change', () => applyDateFilter(startDateInput, endDateInput));
 
-  // Set the date inputs to their last known values
-  if (lastStartDate) startDateInput.value = lastStartDate;
-  if (lastEndDate) endDateInput.value = lastEndDate;
-
-  // Initialize date inputs if they haven't been set before
-  if (!lastStartDate || !lastEndDate) {
-    initializeDateInputs();
-  }
+  // Use the defaultDateRange setting
+  webviewApi.postMessage({
+    name: 'getDefaultDateRange'
+  });
 }
 
 function applyDateFilter(startDateInput, endDateInput) {
@@ -288,18 +277,6 @@ function applyDateFilter(startDateInput, endDateInput) {
   }
 }
 
-// Initialize date inputs with default values
-function initializeDateInputs() {
-  // Use the defaultDateRange setting
-  webviewApi.postMessage({
-    name: 'getDefaultDateRange'
-  });
-}
-
-// Initial update
-updateRunningTasksDisplay();
-updateCompletedTasksDisplay();
-
 function updateAutocompleteLists() {
   if (removeTaskAutocomplete) removeTaskAutocomplete();
   if (removeProjectAutocomplete) removeProjectAutocomplete();
@@ -307,9 +284,6 @@ function updateAutocompleteLists() {
   removeTaskAutocomplete = setupAutocomplete(taskNameInput, uniqueTasks);
   removeProjectAutocomplete = setupAutocomplete(projectNameInput, uniqueProjects);
 }
-
-// Use this function instead of calling setupAutocomplete directly
-updateAutocompleteLists();
 
 function setupAutocomplete(input, items) {
   let autocompleteList = null;
