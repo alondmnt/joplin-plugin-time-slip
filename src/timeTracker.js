@@ -192,7 +192,7 @@ webviewApi.onMessage(function(event) {
     const defaultDateRange = message.value;
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - defaultDateRange);
+    startDate.setDate(startDate.getDate() - defaultDateRange + 1);
 
     const endDateInput = document.getElementById('endDate');
     const startDateInput = document.getElementById('startDate');
