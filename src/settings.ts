@@ -25,6 +25,9 @@ export async function registerSettings() {
     },
     'timeslip.defaultDateRange': {
       value: 7,
+      minimum: 1,
+      maximum: 365,
+      step: 1,
       type: SettingItemType.Int,
       section: 'timeslip',
       public: true,
