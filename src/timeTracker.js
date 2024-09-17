@@ -19,6 +19,12 @@ let removeProjectAutocomplete = null;
 
 let runningTasksInterval;
 
+const aggregationSlider = document.getElementById('aggregationSlider');
+let currentAggregationLevel = 1;
+
+// Add this variable at the top of the file
+let selectedNoteName = '';
+
 function requestInitialData() {
   webviewApi.postMessage({
     name: 'requestInitialData'
@@ -147,6 +153,18 @@ function updateNoteSelector(logNotes) {
   }
 }
 
+// Update the noteSelector event listener
+noteSelector.addEventListener('change', function() {
+  const selectedNoteId = this.value;
+  selectedNoteName = this.options[this.selectedIndex].text;
+  webviewApi.postMessage({
+    name: 'changeNote',
+    noteId: selectedNoteId,
+    startDate: lastStartDate,
+    endDate: lastEndDate
+  });
+});
+
 webviewApi.onMessage(function(event) {
   const message = event.message;
   if (message.name === 'updateRunningTasks') {
@@ -181,9 +199,10 @@ webviewApi.onMessage(function(event) {
     initializeDateInputs();
     updateAutocompleteLists();
     
-    // If there's a default note ID, select it
+    // If there's a default note ID, select it and set the selectedNoteName
     if (message.defaultNoteId && noteSelector.querySelector(`option[value="${message.defaultNoteId}"]`)) {
       noteSelector.value = message.defaultNoteId;
+      selectedNoteName = noteSelector.options[noteSelector.selectedIndex].text;
       noteSelector.dispatchEvent(new Event('change'));
     }
 
@@ -210,22 +229,49 @@ webviewApi.onMessage(function(event) {
   }
 });
 
+// Update the updateCompletedTasksDisplay function
 function updateCompletedTasksDisplay() {
   const completedTasksDiv = document.getElementById('completedTasks');
 
   let tasksHtml = '';
 
   if (completedTasks.length > 0) {
-    tasksHtml += '<table><tr><th>Task</th><th>Project</th><th>Duration</th><th>Action</th></tr>';
-    completedTasks.forEach(({ taskName, project, duration }) => {
+    const aggregatedTasks = aggregateTasks(completedTasks, currentAggregationLevel);
+    
+    tasksHtml += '<table>';
+    
+    // Table header based on aggregation level
+    if (currentAggregationLevel === 1) {
+      tasksHtml += '<tr><th>Task</th><th>Project</th><th>Duration</th><th>Action</th></tr>';
+    } else if (currentAggregationLevel === 2) {
+      tasksHtml += '<tr><th>Project</th><th>Duration</th></tr>';
+    } else {
+      tasksHtml += '<tr><th>Note</th><th>Duration</th></tr>';
+    }
+
+    aggregatedTasks.forEach(({ name, duration, originalTask, originalProject }) => {
       const formattedDuration = formatDuration(Math.floor(duration / 1000));
-      tasksHtml += `<tr>
-        <td>${taskName}</td>
-        <td>${project}</td>
-        <td>${formattedDuration}</td>
-        <td><button class="startButton" data-task="${taskName}" data-project="${project}">Start</button></td>
-      </tr>`;
+      
+      if (currentAggregationLevel === 1) {
+        tasksHtml += `<tr>
+          <td>${originalTask}</td>
+          <td>${originalProject}</td>
+          <td>${formattedDuration}</td>
+          <td><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
+        </tr>`;
+      } else if (currentAggregationLevel === 2) {
+        tasksHtml += `<tr>
+          <td>${name}</td>
+          <td>${formattedDuration}</td>
+        </tr>`;
+      } else {
+        tasksHtml += `<tr>
+          <td>${selectedNoteName || 'No note selected'}</td>
+          <td>${formattedDuration}</td>
+        </tr>`;
+      }
     });
+    
     tasksHtml += '</table>';
   } else {
     tasksHtml += '<p>No completed tasks</p>';
@@ -246,6 +292,39 @@ function updateCompletedTasksDisplay() {
     }
   });
 }
+
+function aggregateTasks(tasks, level) {
+  if (level === 1) {
+    return tasks.map(task => ({
+      name: task.taskName,
+      duration: task.duration,
+      originalTask: task.taskName,
+      originalProject: task.project
+    }));
+  }
+
+  const aggregated = tasks.reduce((acc, task) => {
+    const key = level === 2 ? task.project : 'Total';
+    if (!acc[key]) {
+      acc[key] = { name: key, duration: 0, tasks: [] };
+    }
+    acc[key].duration += task.duration;
+    acc[key].tasks.push(task);
+    return acc;
+  }, {});
+
+  return Object.values(aggregated).map(item => ({
+    name: item.name,
+    duration: item.duration,
+    originalTask: item.tasks[0].taskName,
+    originalProject: item.tasks[0].project
+  }));
+}
+
+aggregationSlider.addEventListener('input', function() {
+  currentAggregationLevel = parseInt(this.value);
+  updateCompletedTasksDisplay();
+});
 
 // Initialize date inputs and add event listeners
 function initializeDateInputs() {
@@ -430,16 +509,6 @@ function setupAutocomplete(input, items) {
   // Return a function that can be used to clean up this autocomplete instance
   return removeListeners;
 }
-
-noteSelector.addEventListener('change', function() {
-  const selectedNoteId = this.value;
-  webviewApi.postMessage({
-    name: 'changeNote',
-    noteId: selectedNoteId,
-    startDate: lastStartDate,
-    endDate: lastEndDate
-  });
-});
 
 function formatDateTime(date) {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;

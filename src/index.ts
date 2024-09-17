@@ -28,6 +28,14 @@ joplin.plugins.register({
           <input type="date" id="endDate" title="End date for filtering completed tasks">
         </div>
         <div id="completedTasks"></div>
+        <div class="aggregation-level">
+          <input type="range" id="aggregationSlider" min="1" max="3" value="1" step="1" title="Aggregation level for completed tasks">
+          <div class="slider-labels">
+            <span>Task</span>
+            <span>Project</span>
+            <span>Note</span>
+          </div>
+        </div>
       </div>
     `);
 
