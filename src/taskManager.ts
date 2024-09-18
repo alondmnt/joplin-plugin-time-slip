@@ -1,6 +1,16 @@
 import { formatLocalTime, formatDuration, formatDate, formatTime, debounce } from './utils';
 import { NoteManager } from './noteManager';
 
+interface FieldIndices {
+  project: number;
+  taskName: number;
+  startDate: number;
+  startTime: number;
+  endDate: number;
+  endTime: number;
+  duration: number;
+}
+
 export class TaskManager {
   private tasks: { [key: string]: { startTime: number; project: string } } = {};
   private joplin: any;
@@ -14,6 +24,7 @@ export class TaskManager {
   private currentStartDate: string | null = null;
   private currentEndDate: string | null = null;
   private logNoteTag: string = 'time-slip';
+  private fieldIndices: FieldIndices | null = null;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -39,6 +50,27 @@ export class TaskManager {
       });
   }
 
+  private inferFieldIndices(header: string): FieldIndices | null {
+    const fields = header.toLowerCase().split(',').map(field => field.trim());
+    const indices: Partial<FieldIndices> = {};
+
+    indices.project = fields.indexOf('project');
+    indices.taskName = fields.indexOf('task');
+    indices.startDate = fields.indexOf('start date');
+    indices.startTime = fields.indexOf('start time');
+    indices.endDate = fields.indexOf('end date');
+    indices.endTime = fields.indexOf('end time');
+    indices.duration = fields.indexOf('duration');
+
+    // Check if all required fields are present
+    if (Object.values(indices).some(index => index === -1)) {
+      console.error('Missing required fields in the header');
+      return null;
+    }
+
+    return indices as FieldIndices;
+  }
+
   async scanNoteAndUpdateTasks() {
     if (!this.noteId) {
       console.log('No note selected. Skipping scan.');
@@ -48,6 +80,14 @@ export class TaskManager {
 
     const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
+
+    // Infer field indices from the header
+    this.fieldIndices = this.inferFieldIndices(lines[0]);
+    if (!this.fieldIndices) {
+      console.error('Invalid header format');
+      return;
+    }
+
     const openTasks: { [key: string]: { startTime: number; project: string } } = {};
     const completedTasks: { [key: string]: { taskName: string; project: string; duration: number; startTime: number; endTime: number } } = {};
     const tasksSet = new Set<string>();
@@ -62,8 +102,14 @@ export class TaskManager {
 
     // Skip the header line
     for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      const [project, taskName, startDateStr, startTimeStr, endDateStr, endTimeStr, duration] = line.split(',');
+      const fields = lines[i].split(',').map(field => field.trim());
+      const project = fields[this.fieldIndices.project];
+      const taskName = fields[this.fieldIndices.taskName];
+      const startDateStr = fields[this.fieldIndices.startDate];
+      const startTimeStr = fields[this.fieldIndices.startTime];
+      const endDateStr = fields[this.fieldIndices.endDate];
+      const endTimeStr = fields[this.fieldIndices.endTime];
+      const duration = fields[this.fieldIndices.duration];
       
       if (taskName) tasksSet.add(taskName);
       if (project) projectsSet.add(project);
@@ -76,7 +122,8 @@ export class TaskManager {
         
         if (calculatedDuration !== duration) {
           // Update the line with the correct duration
-          lines[i] = `${project},${taskName},${startDateStr},${startTimeStr},${endDateStr},${endTimeStr},${calculatedDuration}`;
+          fields[this.fieldIndices.duration] = calculatedDuration;
+          lines[i] = fields.join(',');
           noteUpdated = true;
         }
 
@@ -168,11 +215,6 @@ export class TaskManager {
     });
   }
 
-  private parseDuration(duration: string): number {
-    const [hours, minutes, seconds] = duration.split(':').map(Number);
-    return (hours * 3600 + minutes * 60 + seconds) * 1000;
-  }
-
   private updateCompletedTasks(completedTasks: Array<{ taskName: string; project: string; duration: number; endTime: number }>) {
     this.completedTasks = completedTasks.sort((a, b) => b.duration - a.duration);
 
@@ -191,6 +233,11 @@ export class TaskManager {
       return;
     }
 
+    if (!this.fieldIndices) {
+      console.error('Field indices not initialized');
+      return;
+    }
+
     const taskKey = this.getTaskKey(taskName, project);
     if (this.tasks[taskKey]) {
       this.joplin.views.panels.postMessage(this.panel, { 
@@ -206,11 +253,18 @@ export class TaskManager {
       let updatedBody = note.body;
 
       if (!updatedBody.trim()) {
-        updatedBody = "Project,Task,Start date,Start time,End date,End time,Duration\n";
+        // Create header if note is empty
+        const header = ['Project', 'Task', 'Start date', 'Start time', 'End date', 'End time', 'Duration'];
+        updatedBody = header.join(',') + '\n';
       }
 
-      const startEntry = `${project},${taskName},${formatDate(startTime)},${formatTime(startTime)}\n`;
-      updatedBody += startEntry;
+      const newEntry = new Array(7).fill(''); // Create an array with 7 empty strings
+      newEntry[this.fieldIndices.project] = project;
+      newEntry[this.fieldIndices.taskName] = taskName;
+      newEntry[this.fieldIndices.startDate] = formatDate(startTime);
+      newEntry[this.fieldIndices.startTime] = formatTime(startTime);
+
+      updatedBody += newEntry.join(',') + '\n';
 
       await this.noteManager.updateNote(updatedBody);
       await this.scanNoteAndUpdateTasks();
@@ -220,6 +274,11 @@ export class TaskManager {
   async stopTask(taskName: string, project: string) {
     if (!this.noteId) {
       console.error('No note selected. Cannot stop task.');
+      return;
+    }
+
+    if (!this.fieldIndices) {
+      console.error('Field indices not initialized');
       return;
     }
 
@@ -241,17 +300,21 @@ export class TaskManager {
     
     // Find the last matching open task entry
     const lineIndex = lines.findIndex(line => {
-      const parts = line.split(',');
-      return parts[0] === project &&
-             parts[1] === taskName && 
-             parts[2] === startDate &&
-             parts[3] === startTimeFormatted &&
-             parts.length === 4; // This ensures we're only matching open tasks
+      const fields = line.split(',');
+      return fields[this.fieldIndices.project] === project &&
+             fields[this.fieldIndices.taskName] === taskName && 
+             fields[this.fieldIndices.startDate] === startDate &&
+             fields[this.fieldIndices.startTime] === startTimeFormatted &&
+             !fields[this.fieldIndices.endDate] && // Ensure end date is empty
+             !fields[this.fieldIndices.endTime]; // Ensure end time is empty
     });
 
     if (lineIndex !== -1) {
-      const updatedLine = `${lines[lineIndex]},${formatDate(endTime)},${formatTime(endTime)},${formatDuration(duration)}`;
-      lines[lineIndex] = updatedLine;
+      const fields = lines[lineIndex].split(',');
+      fields[this.fieldIndices.endDate] = formatDate(endTime);
+      fields[this.fieldIndices.endTime] = formatTime(endTime);
+      fields[this.fieldIndices.duration] = formatDuration(duration);
+      lines[lineIndex] = fields.join(',');
       const updatedBody = lines.join('\n');
       await this.noteManager.updateNote(updatedBody);
     } else {
