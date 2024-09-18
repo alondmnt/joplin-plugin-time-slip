@@ -50,8 +50,9 @@ body {
 }
 
 #errorMessage {
-    color: red;
+    color: rgb(194, 28, 28);
     margin-bottom: 5px;
+    margin-top: 5px;
     font-size: var(--joplin-font-size);
 }
 

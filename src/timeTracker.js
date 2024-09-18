@@ -2,10 +2,12 @@ const taskNameInput = document.getElementById('taskName');
 const projectNameInput = document.getElementById('projectName');
 const startButton = document.getElementById('startButton');
 const runningTasksDiv = document.getElementById('runningTasks');
-const errorMessageDiv = document.createElement('div');
-errorMessageDiv.id = 'errorMessage';
-document.getElementById('timeTracker').appendChild(errorMessageDiv);
+const errorMessageDiv = document.getElementById('errorMessage');
 const noteSelector = document.getElementById('noteSelector');
+let selectedNoteName = '';
+const aggregationSlider = document.getElementById('aggregationSlider');
+let currentAggregationLevel = 1;
+
 
 let tasks = {};
 let completedTasks = [];
@@ -18,12 +20,6 @@ let removeTaskAutocomplete = null;
 let removeProjectAutocomplete = null;
 
 let runningTasksInterval;
-
-const aggregationSlider = document.getElementById('aggregationSlider');
-let currentAggregationLevel = 1;
-
-// Add this variable at the top of the file
-let selectedNoteName = '';
 
 function requestInitialData() {
   webviewApi.postMessage({
