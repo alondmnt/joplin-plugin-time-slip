@@ -196,7 +196,6 @@ webviewApi.onMessage(function(event) {
     updateCompletedTasksDisplay();
     updateAutocompleteLists();
     updateNoteSelector(message.logNotes);
-    initializeDateInputs();
     updateAutocompleteLists();
     
     // If there's a default note ID, select it and set the selectedNoteName
@@ -514,5 +513,6 @@ function formatDateTime(date) {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 }
 
+initializeDateInputs();
 // Wait for 1 second before requesting initial data
 setTimeout(requestInitialData, 1000);
