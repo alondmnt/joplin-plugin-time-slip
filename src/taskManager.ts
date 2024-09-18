@@ -52,6 +52,7 @@ export class TaskManager {
     const completedTasks: { [key: string]: { taskName: string; project: string; duration: number; startTime: number; endTime: number } } = {};
     const tasksSet = new Set<string>();
     const projectsSet = new Set<string>();
+    let noteUpdated = false;
 
     const startDate = this.currentStartDate ? new Date(this.currentStartDate) : null;
     const endDate = this.currentEndDate ? new Date(this.currentEndDate) : null;
@@ -70,20 +71,27 @@ export class TaskManager {
       if (startTimeStr && endTimeStr) {
         const startDateTime = new Date(`${startDateStr} ${startTimeStr}`);
         const endDateTime = new Date(`${endDateStr} ${endTimeStr}`);
-        const durationMs = this.parseDuration(duration);
+        const calculatedDurationMs = endDateTime.getTime() - startDateTime.getTime();
+        const calculatedDuration = formatDuration(calculatedDurationMs);
+        
+        if (calculatedDuration !== duration) {
+          // Update the line with the correct duration
+          lines[i] = `${project},${taskName},${startDateStr},${startTimeStr},${endDateStr},${endTimeStr},${calculatedDuration}`;
+          noteUpdated = true;
+        }
 
         // Check if the task falls within the date range
         if (this.isTaskInDateRange(startDateTime, endDateTime, startDate, endDate)) {
           const taskKey = this.getTaskKey(taskName, project);
           if (taskKey in completedTasks) {
-            completedTasks[taskKey].duration += durationMs;
+            completedTasks[taskKey].duration += calculatedDurationMs;
             completedTasks[taskKey].startTime = Math.min(completedTasks[taskKey].startTime, startDateTime.getTime());
             completedTasks[taskKey].endTime = Math.max(completedTasks[taskKey].endTime, endDateTime.getTime());
           } else {
             completedTasks[taskKey] = {
               taskName,
               project,
-              duration: durationMs,
+              duration: calculatedDurationMs,
               startTime: startDateTime.getTime(),
               endTime: endDateTime.getTime()
             };
@@ -95,6 +103,12 @@ export class TaskManager {
         const startDateTime = new Date(`${startDateStr} ${startTimeStr}`);
         openTasks[taskKey] = { startTime: startDateTime.getTime(), project };
       }
+    }
+
+    // Update the note if any durations were corrected
+    if (noteUpdated) {
+      const updatedBody = lines.join('\n');
+      await this.noteManager.updateNote(updatedBody);
     }
 
     // Update tasks
