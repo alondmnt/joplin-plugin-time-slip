@@ -205,19 +205,17 @@ webviewApi.onMessage(function(event) {
     updateNoteSelector(message.notes);
 
   } else if (message.name === 'defaultDateRange') {
-    const defaultDateRange = message.value;
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - defaultDateRange + 1);
+    const startDate = new Date(message.startDate);
+    const endDate = new Date(message.endDate);
 
-    const endDateInput = document.getElementById('endDate');
     const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
 
-    lastEndDate = endDate.toLocaleDateString('en-CA');
     lastStartDate = startDate.toLocaleDateString('en-CA');
+    lastEndDate = endDate.toLocaleDateString('en-CA');
 
-    endDateInput.value = lastEndDate;
     startDateInput.value = lastStartDate;
+    endDateInput.value = lastEndDate;
 
     // Trigger initial filter
     applyDateFilter(startDateInput, endDateInput);

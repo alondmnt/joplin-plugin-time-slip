@@ -1,7 +1,7 @@
 import joplin from 'api';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
-import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getDefaultDateRange } from './settings';
+import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange } from './settings';
 
 joplin.plugins.register({
   onStart: async function() {
@@ -86,6 +86,7 @@ joplin.plugins.register({
         await taskManager.setNoteId(noteId);
         if (noteId) {
           await taskManager.setDateRange(message.startDate, message.endDate);
+          setCurrentDateRange(message.startDate, message.endDate);
           await taskManager.scanNoteAndUpdateTasks();
           // Save the selected note ID as the default
           await setDefaultNoteId(noteId);
@@ -114,16 +115,18 @@ joplin.plugins.register({
 
       } else if (message.name === 'requestInitialData') {
         const initialData = await taskManager.getInitialData();
+        const currentDateRange = await getCurrentDateRange();
         await joplin.views.panels.postMessage(panel, {
           name: 'initialData',
-          ...initialData
+          ...initialData,
+          currentDateRange
         });
 
       } else if (message.name === 'applyDateFilter') {
         if (noteId) {
           await taskManager.setDateRange(message.startDate, message.endDate);
+          setCurrentDateRange(message.startDate, message.endDate);
           await taskManager.scanNoteAndUpdateTasks();
-
         } else {
           await joplin.views.panels.postMessage(panel, { 
             name: 'error', 
@@ -132,10 +135,10 @@ joplin.plugins.register({
         }
 
       } else if (message.name === 'getDefaultDateRange') {
-        const defaultDateRange = await getDefaultDateRange();
+        const currentDateRange = await getCurrentDateRange();
         await joplin.views.panels.postMessage(panel, {
           name: 'defaultDateRange',
-          value: defaultDateRange
+          ...currentDateRange
         });
       }
     });

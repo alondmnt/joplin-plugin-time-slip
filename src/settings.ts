@@ -52,3 +52,26 @@ export async function setDefaultNoteId(noteId: string): Promise<void> {
 export async function getDefaultDateRange(): Promise<number> {
   return await joplin.settings.value('timeslip.defaultDateRange');
 }
+
+let currentStartDate: string | null = null;
+let currentEndDate: string | null = null;
+
+export async function getCurrentDateRange(): Promise<{ startDate: string | null; endDate: string | null }> {
+  if (currentStartDate && currentEndDate) {
+    return { startDate: currentStartDate, endDate: currentEndDate };
+  } else {
+    const defaultRange = await getDefaultDateRange();
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - defaultRange + 1);
+    return {
+      startDate: startDate.toLocaleDateString('en-CA'),
+      endDate: endDate.toLocaleDateString('en-CA')
+    };
+  }
+}
+
+export function setCurrentDateRange(startDate: string | null, endDate: string | null): void {
+  currentStartDate = startDate;
+  currentEndDate = endDate;
+}
