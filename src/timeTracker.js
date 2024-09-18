@@ -509,6 +509,6 @@ function formatDateTime(date) {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 }
 
-initializeDateInputs();
 // Wait for 1 second before requesting initial data
+setTimeout(initializeDateInputs, 500);
 setTimeout(requestInitialData, 1000);

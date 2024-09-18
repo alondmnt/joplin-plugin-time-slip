@@ -51,7 +51,6 @@ joplin.plugins.register({
     if (noteId) {
       await noteManager.setNoteId(noteId);
       await taskManager.setNoteId(noteId);
-      await taskManager.scanNoteAndUpdateTasks();
     }
 
     await joplin.workspace.onSyncComplete(async () => await taskManager.scanNoteAndUpdateTasks());
