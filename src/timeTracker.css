@@ -59,6 +59,7 @@ body {
     overflow-y: auto;
     font-size: var(--joplin-font-size);
     box-sizing: border-box;
+    margin-bottom: 5px;
 }
 
 .running-task {
@@ -90,7 +91,7 @@ body {
 }
 
 .running-task-project {
-    font-size: calc(var(--joplin-font-size) * 0.8);
+    font-size: calc(var(--joplin-font-size) * 0.9);
     color: var(--joplin-color-faded);
 }
 
