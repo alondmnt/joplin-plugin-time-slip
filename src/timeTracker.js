@@ -7,6 +7,8 @@ const noteSelector = document.getElementById('noteSelector');
 let selectedNoteName = '';
 const aggregationSlider = document.getElementById('aggregationSlider');
 let currentAggregationLevel = 1;
+const taskFilter = document.getElementById('taskFilter');
+let currentFilter = '';
 
 
 let tasks = {};
@@ -206,6 +208,7 @@ webviewApi.onMessage(function(event) {
     aggregationSlider.value = currentAggregationLevel;
     updateCompletedTasksDisplay();
 
+    taskNameInput.focus();
   } else if (message.name === 'updateLogNotes') {
     updateNoteSelector(message.notes);
 
@@ -234,7 +237,11 @@ function updateCompletedTasksDisplay() {
   let tasksHtml = '';
 
   if (completedTasks.length > 0) {
-    const aggregatedTasks = aggregateTasks(completedTasks, currentAggregationLevel);
+    const filteredTasks = completedTasks.filter(task => 
+      task.taskName.toLowerCase().includes(currentFilter.toLowerCase()) || 
+      task.project.toLowerCase().includes(currentFilter.toLowerCase())
+    );
+    const aggregatedTasks = aggregateTasks(filteredTasks, currentAggregationLevel);
     
     tasksHtml += '<table>';
     
@@ -327,6 +334,23 @@ aggregationSlider.addEventListener('input', function() {
     name: 'setAggregationLevel',
     level: currentAggregationLevel
   });
+});
+
+taskFilter.addEventListener('input', function() {
+  currentFilter = this.value;
+  updateCompletedTasksDisplay();
+});
+
+taskFilter.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    if (taskFilter.value !== '') {
+      taskFilter.value = '';
+      currentFilter = '';
+      updateCompletedTasksDisplay();
+    } else {
+      taskNameInput.focus();
+    }
+  }
 });
 
 // Initialize date inputs and add event listeners

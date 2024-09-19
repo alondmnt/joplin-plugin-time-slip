@@ -23,9 +23,12 @@ joplin.plugins.register({
         </select>
         <div id="errorMessage"></div>
         <div id="runningTasks"></div>
-        <div class="date-range">
-          <input type="date" id="startDate" title="Start date for filtering completed tasks">
-          <input type="date" id="endDate" title="End date for filtering completed tasks">
+        <div class="filter-group">
+          <div class="date-range">
+            <input type="date" id="startDate" title="Start date for filtering completed tasks">
+            <input type="date" id="endDate" title="End date for filtering completed tasks">
+          </div>
+          <input type="text" id="taskFilter" placeholder="Filter tasks" title="Filter tasks by name or project">
         </div>
         <div id="completedTasks"></div>
         <div class="aggregation-level">

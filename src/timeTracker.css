@@ -1,5 +1,9 @@
+* {
+    box-sizing: border-box;
+}
+
 #taskName, #projectName, #startButton, .running-task, .stopButton, .startButton, #noteSelector, .date-range input[type="date"],
-.autocomplete-list, #completedTasks table, #completedTasks th, #completedTasks td {
+.autocomplete-list, #completedTasks table, #completedTasks th, #completedTasks td, #taskFilter {
     border-color: rgb(118, 118, 118);
     font-size: var(--joplin-font-size);
 }
@@ -261,12 +265,10 @@ body {
     font-size: var(--joplin-font-size);
 }
 
-/* Date range filter styles */
 .date-range {
     display: flex;
-    align-items: center;
-    margin-bottom: 5px;
     gap: 5px;
+    width: 70%;
 }
 
 .date-range input[type="date"] {
@@ -323,4 +325,34 @@ body {
     font-size: var(--joplin-font-size);
     color: var(--joplin-color);
     margin-top: 5px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 5px;
+    gap: 5px;
+    width: 100%;
+}
+
+#taskFilter {
+    width: 30%;
+    min-height: 23px;
+    padding: 0 5px;
+    color: var(--joplin-color);
+    background-color: var(--joplin-background-color);
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 3px;
+}
+
+/* For smaller screens, stack the elements vertically */
+@media (max-width: 300px) {
+    .filter-group {
+        flex-direction: column;
+    }
+
+    .date-range, #taskFilter {
+        width: 100%;
+    }
 }
