@@ -1,7 +1,7 @@
 import joplin from 'api';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
-import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange } from './settings';
+import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel } from './settings';
 
 joplin.plugins.register({
   onStart: async function() {
@@ -116,10 +116,12 @@ joplin.plugins.register({
       } else if (message.name === 'requestInitialData') {
         const initialData = await taskManager.getInitialData();
         const currentDateRange = await getCurrentDateRange();
+        const aggregationLevel = await getAggregationLevel();
         await joplin.views.panels.postMessage(panel, {
           name: 'initialData',
           ...initialData,
-          currentDateRange
+          currentDateRange,
+          aggregationLevel
         });
 
       } else if (message.name === 'applyDateFilter') {
@@ -140,6 +142,9 @@ joplin.plugins.register({
           name: 'defaultDateRange',
           ...currentDateRange
         });
+
+      } else if (message.name === 'setAggregationLevel') {
+        await setAggregationLevel(message.level);
       }
     });
   },

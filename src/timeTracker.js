@@ -201,6 +201,11 @@ webviewApi.onMessage(function(event) {
       noteSelector.dispatchEvent(new Event('change'));
     }
 
+    // Set the aggregation level
+    currentAggregationLevel = message.aggregationLevel || 1;
+    aggregationSlider.value = currentAggregationLevel;
+    updateCompletedTasksDisplay();
+
   } else if (message.name === 'updateLogNotes') {
     updateNoteSelector(message.notes);
 
@@ -317,6 +322,11 @@ function aggregateTasks(tasks, level) {
 aggregationSlider.addEventListener('input', function() {
   currentAggregationLevel = parseInt(this.value);
   updateCompletedTasksDisplay();
+  // Save the new aggregation level
+  webviewApi.postMessage({
+    name: 'setAggregationLevel',
+    level: currentAggregationLevel
+  });
 });
 
 // Initialize date inputs and add event listeners

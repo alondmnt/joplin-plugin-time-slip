@@ -32,7 +32,21 @@ export async function registerSettings() {
       section: 'timeslip',
       public: true,
       label: 'Default date range (days)',
-      description: 'The default number of days to show in the completed tasks list. Default: 7',
+      description: 'The default last number of days of completed tasks to display. Default: 7',
+    },
+    'timeslip.aggregationLevel': {
+      value: 1,
+      type: SettingItemType.Int,
+      section: 'timeslip',
+      public: true,
+      isEnum: true,
+      label: 'Aggregation level',
+      description: 'For summarizing completed tasks',
+      options: {
+        1: 'Task',
+        2: 'Project',
+        3: 'Note',
+      },
     },
   });
 }
@@ -51,6 +65,14 @@ export async function setDefaultNoteId(noteId: string): Promise<void> {
 
 export async function getDefaultDateRange(): Promise<number> {
   return await joplin.settings.value('timeslip.defaultDateRange');
+}
+
+export async function getAggregationLevel(): Promise<number> {
+  return await joplin.settings.value('timeslip.aggregationLevel');
+}
+
+export async function setAggregationLevel(level: number): Promise<void> {
+  await joplin.settings.setValue('timeslip.aggregationLevel', level);
 }
 
 let currentStartDate: string | null = null;
