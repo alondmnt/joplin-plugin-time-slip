@@ -268,7 +268,7 @@ body {
 .date-range {
     display: flex;
     gap: 5px;
-    width: 70%;
+    width: 80%;
 }
 
 .date-range input[type="date"] {
@@ -336,7 +336,7 @@ body {
 }
 
 #taskFilter {
-    width: 30%;
+    width: 20%;
     min-height: 23px;
     padding: 0 5px;
     color: var(--joplin-color);
