@@ -25,6 +25,7 @@ export class TaskManager {
   private currentEndDate: string | null = null;
   private logNoteTag: string = 'time-slip';
   private fieldIndices: FieldIndices | null = null;
+  private defaultHeader = "Project,Task,Start date,Start time,End date,End time,Duration";
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -71,12 +72,26 @@ export class TaskManager {
     return indices as FieldIndices;
   }
 
+  private async ensureNoteHasHeader(): Promise<boolean> {
+    if (!this.noteId) return false;
+
+    const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
+    if (!note.body.trim()) {
+      // Note is empty, add the default header
+      await this.noteManager.updateNote(this.defaultHeader + '\n');
+      return true;
+    }
+    return false;
+  }
+
   async scanNoteAndUpdateTasks() {
     if (!this.noteId) {
       console.log('No note selected. Skipping scan.');
       this.updateCompletedTasks([]);
       return;
     }
+
+    const headerAdded = await this.ensureNoteHasHeader();
 
     const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
@@ -231,6 +246,12 @@ export class TaskManager {
         message: 'Please select a note first.' 
       });
       return;
+    }
+
+    await this.ensureNoteHasHeader();
+
+    if (!this.fieldIndices) {
+      await this.scanNoteAndUpdateTasks();
     }
 
     if (!this.fieldIndices) {
