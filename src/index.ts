@@ -1,4 +1,5 @@
 import joplin from 'api';
+import { MenuItemLocation } from 'api/types';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
 import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel } from './settings';
@@ -62,7 +63,7 @@ joplin.plugins.register({
 
     await joplin.commands.register({
       name: 'timeslip.togglePanel',
-      label: 'Toggle Time Slip Panel',
+      label: 'Toggle Time Slip panel',
       iconName: 'fas fa-stopwatch',
       execute: async () => {
         const isVisible = await joplin.views.panels.visible(panel);
@@ -73,6 +74,7 @@ joplin.plugins.register({
         }
       }
     });
+    await joplin.views.menuItems.create('timeslip.togglePanel', 'timeslip.togglePanel', MenuItemLocation.View);
 
     await joplin.settings.onChange(async (event) => {
       if (event.keys.includes('timeslip.logNoteTag')) {
