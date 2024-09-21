@@ -20,7 +20,7 @@ joplin.plugins.register({
           <button id="startButton">Start</button>
         </div>
         <select id="noteSelector">
-          <option value="">Tag a note with a time-slip tag</option>
+          <option value="">To start, tag a note with a time-slip tag</option>
         </select>
         <div id="errorMessage"></div>
         <div id="runningTasks"></div>
