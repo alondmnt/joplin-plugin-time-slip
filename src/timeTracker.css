@@ -360,3 +360,23 @@ body {
 .hidden {
     display: none;
 }
+
+.section-divider {
+    display: flex;
+    align-items: center;
+    margin: 2px 0;
+    color: var(--joplin-color);
+}
+
+.section-divider hr {
+    flex-grow: 1;
+    border: none;
+    height: 1px;
+    background-color: rgb(118, 118, 118);;
+    margin: 0 5px;
+}
+
+.section-divider span {
+    font-weight: bold;
+    white-space: nowrap;
+}
