@@ -32,7 +32,7 @@ joplin.plugins.register({
           <input type="text" id="taskFilter" placeholder="Filter tasks" title="Filter tasks by name or project">
         </div>
         <div id="completedTasks"></div>
-        <div class="aggregation-level">
+        <div class="aggregation-level hidden">
           <input type="range" id="aggregationSlider" min="1" max="3" value="1" step="1" title="Aggregation level for completed tasks">
           <div class="slider-labels">
             <span>Task</span>

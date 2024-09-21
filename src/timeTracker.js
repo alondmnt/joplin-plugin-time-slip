@@ -233,6 +233,7 @@ webviewApi.onMessage(function(event) {
 // Update the updateCompletedTasksDisplay function
 function updateCompletedTasksDisplay() {
   const completedTasksDiv = document.getElementById('completedTasks');
+  const aggregationLevelDiv = document.querySelector('.aggregation-level');
 
   let tasksHtml = '';
 
@@ -278,8 +279,10 @@ function updateCompletedTasksDisplay() {
     });
     
     tasksHtml += '</table>';
+    aggregationLevelDiv.classList.remove('hidden');
   } else {
     tasksHtml += '<p>No completed tasks</p>';
+    aggregationLevelDiv.classList.add('hidden');
   }
   
   completedTasksDiv.innerHTML = tasksHtml;
