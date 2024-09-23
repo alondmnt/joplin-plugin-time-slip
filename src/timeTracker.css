@@ -64,7 +64,7 @@ body {
     overflow-y: auto;
     font-size: var(--joplin-font-size);
     box-sizing: border-box;
-    margin-bottom: 5px;
+    margin: 0px;
 }
 
 .running-task {
@@ -364,7 +364,7 @@ body {
 .section-divider {
     display: flex;
     align-items: center;
-    margin: 2px 0;
+    margin-bottom: 2px;
     color: var(--joplin-color);
 }
 
