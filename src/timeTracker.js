@@ -98,6 +98,7 @@ function updateRunningTasksDisplay() {
   }
 }
 
+// Add event listener for start button
 startButton.addEventListener('click', function() {
   const taskName = taskNameInput.value.trim();
   const projectName = projectNameInput.value.trim();
@@ -115,6 +116,7 @@ startButton.addEventListener('click', function() {
   }
 });
 
+// Use event delegation for stop buttons in runningTasksDiv
 runningTasksDiv.addEventListener('click', function(event) {
   if (event.target.classList.contains('stopButton')) {
     const taskName = event.target.getAttribute('data-task');
@@ -126,6 +128,19 @@ runningTasksDiv.addEventListener('click', function(event) {
     });
     delete tasks[`${taskName}|${projectName}`];
     updateRunningTasksDisplay();
+  }
+});
+
+// Use event delegation for start buttons in completedTasksDiv
+document.getElementById('completedTasks').addEventListener('click', function(event) {
+  if (event.target.classList.contains('startButton')) {
+    const taskName = event.target.getAttribute('data-task');
+    const projectName = event.target.getAttribute('data-project');
+    webviewApi.postMessage({
+      name: 'start',
+      taskName: taskName,
+      projectName: projectName
+    });
   }
 });
 
@@ -175,7 +190,6 @@ webviewApi.onMessage(function(event) {
     updateCompletedTasksDisplay();
 
   } else if (message.name === 'updateAutocompleteLists') {
-    console.log('Received new autocomplete lists', message.tasks, message.projects);
     uniqueTasks = message.tasks || [];
     uniqueProjects = message.projects || [];
     updateAutocompleteLists();
@@ -286,19 +300,6 @@ function updateCompletedTasksDisplay() {
   }
   
   completedTasksDiv.innerHTML = tasksHtml;
-
-  // Use event delegation for start buttons
-  completedTasksDiv.addEventListener('click', function(event) {
-    if (event.target.classList.contains('startButton')) {
-      const taskName = event.target.getAttribute('data-task');
-      const projectName = event.target.getAttribute('data-project');
-      webviewApi.postMessage({
-        name: 'start',
-        taskName: taskName,
-        projectName: projectName
-      });
-    }
-  });
 }
 
 function aggregateTasks(tasks, level) {
