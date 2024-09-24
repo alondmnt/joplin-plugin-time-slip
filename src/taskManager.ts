@@ -1,4 +1,4 @@
-import { formatLocalTime, formatDuration, formatDate, formatTime, debounce } from './utils';
+import { formatDuration, formatDate, formatTime } from './utils';
 import { NoteManager } from './noteManager';
 
 interface FieldIndices {
@@ -143,7 +143,7 @@ export class TaskManager {
         }
 
         // Check if the task falls within the date range
-        if (this.isTaskInDateRange(startDateTime, endDateTime, startDate, endDate)) {
+        if (this.isTaskInDateRange(startDateTime, startDate, endDate)) {
           const taskKey = this.getTaskKey(taskName, project);
           if (taskKey in completedTasks) {
             completedTasks[taskKey].duration += calculatedDurationMs;
@@ -189,12 +189,12 @@ export class TaskManager {
     await this.getLogNotes();
   }
 
-  private isTaskInDateRange(taskStart: Date, taskEnd: Date, rangeStart: Date | null, rangeEnd: Date | null): boolean {
+  private isTaskInDateRange(taskStart: Date, rangeStart: Date | null, rangeEnd: Date | null): boolean {
     if (!rangeStart && !rangeEnd) return true;
     if (rangeStart && rangeEnd) {
-      return (taskStart <= rangeEnd && taskEnd >= rangeStart);
+      return (rangeStart <= taskStart && taskStart <= rangeEnd);
     }
-    if (rangeStart) return taskEnd >= rangeStart;
+    if (rangeStart) return taskStart >= rangeStart;
     if (rangeEnd) return taskStart <= rangeEnd;
     return false; // This line should never be reached
   }
