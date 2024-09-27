@@ -28,7 +28,7 @@ body {
 }
 
 #taskName, #projectName {
-    width: 41%;
+    width: 40%;
     min-height: 23px;
     color: var(--joplin-color);
     background-color: var(--joplin-background-color);
@@ -38,7 +38,7 @@ body {
 }
 
 #startButton, #openNoteButton, .stopButton {
-    width: 18%;
+    width: 20%;
     min-height: 23px;
     cursor: pointer;
     color: var(--joplin-color);
@@ -241,7 +241,7 @@ body {
 }
 
 #noteSelector {
-    width: 82%;
+    width: 80%;
     min-height: 23px;
     padding: 0 5px;
     color: var(--joplin-color);
