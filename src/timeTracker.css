@@ -28,7 +28,7 @@ body {
 }
 
 #taskName, #projectName {
-    width: 41%; /* Adjusted to accommodate the 18% button width */
+    width: 41%;
     min-height: 23px;
     color: var(--joplin-color);
     background-color: var(--joplin-background-color);
@@ -37,7 +37,7 @@ body {
     border-style: solid;
 }
 
-#startButton, #openNoteButton {
+#startButton, #openNoteButton, .stopButton {
     width: 18%;
     min-height: 23px;
     cursor: pointer;
@@ -48,24 +48,10 @@ body {
     border-spacing: 5px;
     border-style: solid;
     font-size: var(--joplin-font-size);
+    padding: 3px 8px;
 }
 
-#startButton:hover, #openNoteButton:hover {
-    background-color: var(--joplin-background-color-hover3);
-}
-
-#startButton {
-    min-height: 23px;
-    cursor: pointer;
-    color: var(--joplin-color);
-    background-color: var(--joplin-background-color);
-    border-width: 1px;
-    border-radius: 3px;
-    border-spacing: 5px;
-    border-style: solid;
-}
-
-#startButton:hover {
+#startButton:hover, #openNoteButton:hover, .stopButton:hover {
     background-color: var(--joplin-background-color-hover3);
 }
 
@@ -132,20 +118,6 @@ body {
     text-align: right;
 }
 
-.stopButton {
-    padding: 3px 8px;
-    background-color: var(--joplin-background-color);
-    color: var(--joplin-color);
-    border-width: 1px;
-    border-radius: 3px;
-    border-style: solid;
-    cursor: pointer;
-}
-
-.stopButton:hover {
-    background-color: var(--joplin-background-color-hover3);
-}
-
 ::-webkit-scrollbar {
     width: 7px;
     height: 7px;
@@ -174,7 +146,7 @@ body {
 
 #completedTasks {
     margin-top: 0px;
-    margin-bottom: 10px; /* Add some space between the table and the slider */
+    margin-bottom: 10px;
 }
 
 #completedTasks table {
@@ -269,7 +241,7 @@ body {
 }
 
 #noteSelector {
-    width: 82%; /* 100% - 18% for the button */
+    width: 82%;
     min-height: 23px;
     padding: 0 5px;
     color: var(--joplin-color);
