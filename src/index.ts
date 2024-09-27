@@ -19,9 +19,12 @@ joplin.plugins.register({
           <input type="text" id="projectName" placeholder="Project name">
           <button id="startButton">Start</button>
         </div>
-        <select id="noteSelector">
-          <option value="">To start, tag a new note with a time-slip tag</option>
-        </select>
+        <div class="note-selector-group">
+          <select id="noteSelector">
+            <option value="">To start, tag a new note with a time-slip tag</option>
+          </select>
+          <button id="openNoteButton" title="Open selected note">Open</button>
+        </div>
         <div id="errorMessage"></div>
         <div id="runningTasks"></div>
         <div class="section-divider">
@@ -155,6 +158,10 @@ joplin.plugins.register({
 
       } else if (message.name === 'setAggregationLevel') {
         await setAggregationLevel(message.level);
+      } else if (message.name === 'openNote') {
+        if (message.noteId) {
+          await joplin.commands.execute('openNote', message.noteId);
+        }
       }
     });
   },

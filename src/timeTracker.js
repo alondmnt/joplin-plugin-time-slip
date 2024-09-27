@@ -164,9 +164,17 @@ function updateNoteSelector(logNotes) {
   } else {
     noteSelector.dispatchEvent(new Event('change'));
   }
+  
+  updateOpenNoteButtonVisibility();
 }
 
-// Update the noteSelector event listener
+function updateOpenNoteButtonVisibility() {
+  const openNoteButton = document.getElementById('openNoteButton');
+  if (openNoteButton) {
+    openNoteButton.style.display = noteSelector.value ? 'inline-block' : 'none';
+  }
+}
+
 noteSelector.addEventListener('change', function() {
   const selectedNoteId = this.value;
   selectedNoteName = this.options[this.selectedIndex].text;
@@ -176,7 +184,20 @@ noteSelector.addEventListener('change', function() {
     startDate: lastStartDate,
     endDate: lastEndDate
   });
+  
+  updateOpenNoteButtonVisibility();
 });
+
+// Add this new function
+function openSelectedNote() {
+  const selectedNoteId = noteSelector.value;
+  if (selectedNoteId) {
+    webviewApi.postMessage({
+      name: 'openNote',
+      noteId: selectedNoteId
+    });
+  }
+}
 
 webviewApi.onMessage(function(event) {
   const message = event.message;
@@ -544,6 +565,9 @@ function setupAutocomplete(input, items) {
 function formatDateTime(date) {
   return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 }
+
+document.getElementById('openNoteButton').addEventListener('click', openSelectedNote);
+updateOpenNoteButtonVisibility();
 
 // Wait for 1 second before requesting initial data
 setTimeout(initializeDateInputs, 500);

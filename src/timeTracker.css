@@ -20,7 +20,7 @@ body {
     max-height: calc(100vh - 20px); /* Adjust if needed */
 }
 
-.input-group {
+.input-group, .note-selector-group {
     display: flex;
     gap: 5px;
     margin-bottom: 5px;
@@ -28,7 +28,7 @@ body {
 }
 
 #taskName, #projectName {
-    width: 46%;
+    width: 41%; /* Adjusted to accommodate the 18% button width */
     min-height: 23px;
     color: var(--joplin-color);
     background-color: var(--joplin-background-color);
@@ -37,8 +37,24 @@ body {
     border-style: solid;
 }
 
-#startButton {
+#startButton, #openNoteButton {
     width: 18%;
+    min-height: 23px;
+    cursor: pointer;
+    color: var(--joplin-color);
+    background-color: var(--joplin-background-color);
+    border-width: 1px;
+    border-radius: 3px;
+    border-spacing: 5px;
+    border-style: solid;
+    font-size: var(--joplin-font-size);
+}
+
+#startButton:hover, #openNoteButton:hover {
+    background-color: var(--joplin-background-color-hover3);
+}
+
+#startButton {
     min-height: 23px;
     cursor: pointer;
     color: var(--joplin-color);
@@ -253,7 +269,7 @@ body {
 }
 
 #noteSelector {
-    width: 100%;
+    width: 82%; /* 100% - 18% for the button */
     min-height: 23px;
     padding: 0 5px;
     color: var(--joplin-color);
