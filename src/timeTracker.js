@@ -567,7 +567,6 @@ function formatDateTime(date) {
 }
 
 document.getElementById('openNoteButton').addEventListener('click', openSelectedNote);
-updateOpenNoteButtonVisibility();
 
 // Wait for 1 second before requesting initial data
 setTimeout(initializeDateInputs, 500);
