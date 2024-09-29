@@ -181,8 +181,8 @@ export class TaskManager {
     this.updateCompletedTasks(Object.values(completedTasks));
 
     // Update autocomplete lists
-    this.uniqueTasks = Array.from(tasksSet);
-    this.uniqueProjects = Array.from(projectsSet);
+    this.uniqueTasks = Array.from(tasksSet).sort((a, b) => a.localeCompare(b));
+    this.uniqueProjects = Array.from(projectsSet).sort((a, b) => a.localeCompare(b));
     this.updateAutocompleteLists();
 
     // Scan for log notes
