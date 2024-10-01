@@ -1,4 +1,4 @@
-import { formatDuration, formatDate, formatTime } from './utils';
+import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
 
 interface FieldIndices {
@@ -75,12 +75,14 @@ export class TaskManager {
   private async ensureNoteHasHeader(): Promise<boolean> {
     if (!this.noteId) return false;
 
-    const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
+    let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     if (!note.body.trim()) {
       // Note is empty, add the default header
       await this.noteManager.updateNote(this.defaultHeader + '\n');
+      note = clearNoteReferences(note);
       return true;
     }
+    note = clearNoteReferences(note);
     return false;
   }
 
@@ -93,8 +95,9 @@ export class TaskManager {
 
     const headerAdded = await this.ensureNoteHasHeader();
 
-    const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
+    let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
+    note = clearNoteReferences(note);
 
     // Infer field indices from the header
     this.fieldIndices = this.inferFieldIndices(lines[0]);
@@ -270,8 +273,9 @@ export class TaskManager {
       this.tasks[taskKey] = { startTime: startTime.getTime(), project };
       this.updateRunningTasks();
 
-      const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
+      let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
       let updatedBody = note.body;
+      note = clearNoteReferences(note);
 
       if (!updatedBody.trim()) {
         // Create header if note is empty
@@ -314,8 +318,9 @@ export class TaskManager {
     delete this.tasks[taskKey];
     this.updateRunningTasks();
 
-    const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
+    let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
+    note = clearNoteReferences(note);
     const startDate = formatDate(new Date(startTime));
     const startTimeFormatted = formatTime(new Date(startTime));
     

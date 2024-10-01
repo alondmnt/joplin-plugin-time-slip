@@ -1,4 +1,5 @@
 import { TaskManager } from './taskManager';
+import { clearNoteReferences } from './utils';
 
 export class NoteManager {
   private joplin: any;
@@ -21,10 +22,11 @@ export class NoteManager {
   }
 
   async updateNote(content: string) {
+    let currentNote: any;
     try {
       await this.joplin.data.put(['notes', this.noteId], null, { body: content });
 
-      const currentNote = await this.joplin.workspace.selectedNote();
+      currentNote = await this.joplin.workspace.selectedNote();
       if (currentNote && currentNote.id === this.noteId) {
         await this.joplin.commands.execute('editor.setText', content);
       }
@@ -34,14 +36,17 @@ export class NoteManager {
         name: 'error', 
         message: 'Failed to update note.' 
       });
+    } finally {
+      currentNote = clearNoteReferences(currentNote);
     }
   }
 
   handleNoteChange = async (event: any) => {
-    const currentNote = await this.joplin.workspace.selectedNote();
+    let currentNote = await this.joplin.workspace.selectedNote();
     if (currentNote && currentNote.id === this.noteId) {
       await this.taskManager.scanNoteAndUpdateTasks();
     }
+    currentNote = clearNoteReferences(currentNote);
   }
 
   handleNoteSelectionChange = async () => {
