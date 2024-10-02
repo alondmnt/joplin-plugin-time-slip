@@ -3,6 +3,7 @@ import { MenuItemLocation } from 'api/types';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
 import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel, getSortOrder } from './settings';
+import { debounce } from './utils';
 
 joplin.plugins.register({
   onStart: async function() {
@@ -66,7 +67,8 @@ joplin.plugins.register({
     }
 
     await joplin.workspace.onSyncComplete(async () => await taskManager.scanNoteAndUpdateTasks());
-    await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
+    const debouncedHandleNoteChange = debounce(noteManager.handleNoteChange, 4000);
+    await joplin.workspace.onNoteChange(debouncedHandleNoteChange);
     await joplin.workspace.onNoteSelectionChange(noteManager.handleNoteSelectionChange);
 
     await joplin.commands.register({
