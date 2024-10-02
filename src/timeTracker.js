@@ -341,8 +341,11 @@ function updateCompletedTasksDisplay() {
       tasksHtml += `<tr>
         <th>Task</th>
         <th class="sortable" data-sort="name">Project</th>
-        <th class="sortable" data-sort="duration">Duration</th>
-        <th class="sortable" data-sort="endTime">End Time</th>
+        ${(
+          currentSortBy === 'endTime') 
+          ? `<th class="sortable" data-sort="endTime">End Time</th>`
+          : `<th class="sortable" data-sort="duration">Duration</th>`
+        }
         <th>Action</th>
       </tr>`;
     } else if (currentAggregationLevel === 2) {
@@ -367,8 +370,11 @@ function updateCompletedTasksDisplay() {
         tasksHtml += `<tr>
           <td>${originalTask}</td>
           <td>${originalProject}</td>
-          <td>${formattedDuration}</td>
-          <td>${formattedEndTime}</td>
+          ${
+            currentSortBy === 'endTime' ?
+            `<td>${formattedEndTime}</td>` :
+            `<td>${formattedDuration}</td>`
+          }
           <td><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
         </tr>`;
       } else if (currentAggregationLevel === 2) {
