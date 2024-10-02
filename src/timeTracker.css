@@ -368,3 +368,11 @@ body {
     font-weight: bold;
     white-space: nowrap;
 }
+
+.sortable {
+    cursor: pointer;
+}
+
+.sortable:hover {
+    text-decoration: underline;
+}

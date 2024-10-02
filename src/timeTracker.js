@@ -5,6 +5,7 @@ const runningTasksDiv = document.getElementById('runningTasks');
 const errorMessageDiv = document.getElementById('errorMessage');
 const noteSelector = document.getElementById('noteSelector');
 let selectedNoteName = '';
+const completedTasksDiv = document.getElementById('completedTasks');
 const aggregationSlider = document.getElementById('aggregationSlider');
 let currentAggregationLevel = 1;
 const taskFilter = document.getElementById('taskFilter');
@@ -22,6 +23,8 @@ let removeTaskAutocomplete = null;
 let removeProjectAutocomplete = null;
 
 let runningTasksInterval;
+
+let currentSortBy = 'duration'; // Default sorting option
 
 function requestInitialData() {
   webviewApi.postMessage({
@@ -244,6 +247,8 @@ webviewApi.onMessage(function(event) {
     updateCompletedTasksDisplay();
 
     taskNameInput.focus();
+
+    currentSortBy = message.sortBy || 'duration';
   } else if (message.name === 'updateLogNotes') {
     updateNoteSelector(message.notes);
 
@@ -262,10 +267,43 @@ webviewApi.onMessage(function(event) {
 
     // Trigger initial filter
     applyDateFilter(startDateInput, endDateInput);
+  } else if (message.name === 'updateSortOrder') {
+    currentSortBy = message.sortBy;
+    updateCompletedTasksDisplay();
   }
 });
 
-// Update the updateCompletedTasksDisplay function
+function aggregateTasks(tasks, level) {
+  if (level === 1) {
+    return tasks.map(task => ({
+      name: task.taskName,
+      duration: task.duration,
+      endTime: task.endTime,
+      originalTask: task.taskName,
+      originalProject: task.project
+    }));
+  }
+
+  const aggregated = tasks.reduce((acc, task) => {
+    const key = level === 2 ? task.project : 'Total';
+    if (!acc[key]) {
+      acc[key] = { name: key, duration: 0, endTime: 0, tasks: [] };
+    }
+    acc[key].duration += task.duration;
+    acc[key].endTime = Math.max(acc[key].endTime, task.endTime);
+    acc[key].tasks.push(task);
+    return acc;
+  }, {});
+
+  return Object.values(aggregated).map(item => ({
+    name: item.name,
+    duration: item.duration,
+    endTime: item.endTime,
+    originalTask: item.tasks[0].taskName,
+    originalProject: item.tasks[0].project
+  }));
+}
+
 function updateCompletedTasksDisplay() {
   const completedTasksDiv = document.getElementById('completedTasks');
   const aggregationLevelDiv = document.querySelector('.aggregation-level');
@@ -277,38 +315,73 @@ function updateCompletedTasksDisplay() {
       task.taskName.toLowerCase().includes(currentFilter.toLowerCase()) || 
       task.project.toLowerCase().includes(currentFilter.toLowerCase())
     );
-    const aggregatedTasks = aggregateTasks(filteredTasks, currentAggregationLevel);
+    let aggregatedTasks = aggregateTasks(filteredTasks, currentAggregationLevel);
+    
+    // Sort the aggregated tasks
+    aggregatedTasks.sort((a, b) => {
+      if (currentSortBy === 'duration') {
+        return b.duration - a.duration;
+      } else if (currentSortBy === 'endTime') {
+        return b.endTime - a.endTime;
+      } else if (currentSortBy === 'name') {
+        const aName = currentAggregationLevel === 1 ? a.originalProject + ' ' + a.originalTask :
+                      currentAggregationLevel === 2 ? a.name :
+                      selectedNoteName || '';
+        const bName = currentAggregationLevel === 1 ? b.originalProject + ' ' + b.originalTask :
+                      currentAggregationLevel === 2 ? b.name :
+                      selectedNoteName || '';
+        return aName.localeCompare(bName);
+      }
+    });
     
     tasksHtml += '<table>';
     
     // Table header based on aggregation level
     if (currentAggregationLevel === 1) {
-      tasksHtml += '<tr><th>Task</th><th>Project</th><th>Duration</th><th>Action</th></tr>';
+      tasksHtml += `<tr>
+        <th>Task</th>
+        <th class="sortable" data-sort="name">Project</th>
+        <th class="sortable" data-sort="duration">Duration</th>
+        <th class="sortable" data-sort="endTime">End Time</th>
+        <th>Action</th>
+      </tr>`;
     } else if (currentAggregationLevel === 2) {
-      tasksHtml += '<tr><th>Project</th><th>Duration</th></tr>';
+      tasksHtml += `<tr>
+        <th class="sortable" data-sort="name">Project</th>
+        <th class="sortable" data-sort="duration">Duration</th>
+        <th class="sortable" data-sort="endTime">End Time</th>
+      </tr>`;
     } else {
-      tasksHtml += '<tr><th>Note</th><th>Duration</th></tr>';
+      tasksHtml += `<tr>
+        <th>Note</th>
+        <th class="sortable" data-sort="duration">Duration</th>
+        <th class="sortable" data-sort="endTime">End Time</th>
+      </tr>`;
     }
 
-    aggregatedTasks.forEach(({ name, duration, originalTask, originalProject }) => {
+    aggregatedTasks.forEach(({ name, duration, originalTask, originalProject, endTime }) => {
       const formattedDuration = formatDuration(Math.floor(duration / 1000));
+      const formattedEndTime = formatDateTime(new Date(endTime));
       
       if (currentAggregationLevel === 1) {
         tasksHtml += `<tr>
           <td>${originalTask}</td>
           <td>${originalProject}</td>
           <td>${formattedDuration}</td>
+          <td>${formattedEndTime}</td>
           <td><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
         </tr>`;
       } else if (currentAggregationLevel === 2) {
         tasksHtml += `<tr>
           <td>${name}</td>
           <td>${formattedDuration}</td>
+          <td>${formattedEndTime}</td>
         </tr>`;
       } else {
         tasksHtml += `<tr>
           <td>${selectedNoteName || 'No note selected'}</td>
           <td>${formattedDuration}</td>
+          <td>${formattedEndTime}</td>
         </tr>`;
       }
     });
@@ -321,34 +394,18 @@ function updateCompletedTasksDisplay() {
   }
   
   completedTasksDiv.innerHTML = tasksHtml;
+
+  // Remove the individual event listeners and use event delegation instead
 }
 
-function aggregateTasks(tasks, level) {
-  if (level === 1) {
-    return tasks.map(task => ({
-      name: task.taskName,
-      duration: task.duration,
-      originalTask: task.taskName,
-      originalProject: task.project
-    }));
+function changeSortOrder(sortBy) {
+  if (sortBy !== currentSortBy) {
+    currentSortBy = sortBy;
+    webviewApi.postMessage({
+      name: 'changeSortOrder',
+      sortBy: currentSortBy
+    });
   }
-
-  const aggregated = tasks.reduce((acc, task) => {
-    const key = level === 2 ? task.project : 'Total';
-    if (!acc[key]) {
-      acc[key] = { name: key, duration: 0, tasks: [] };
-    }
-    acc[key].duration += task.duration;
-    acc[key].tasks.push(task);
-    return acc;
-  }, {});
-
-  return Object.values(aggregated).map(item => ({
-    name: item.name,
-    duration: item.duration,
-    originalTask: item.tasks[0].taskName,
-    originalProject: item.tasks[0].project
-  }));
 }
 
 aggregationSlider.addEventListener('input', function() {
@@ -567,6 +624,14 @@ function formatDateTime(date) {
 }
 
 document.getElementById('openNoteButton').addEventListener('click', openSelectedNote);
+
+completedTasksDiv.addEventListener('click', function(event) {
+  const target = event.target;
+  if (target.classList.contains('sortable')) {
+    const sortBy = target.dataset.sort;
+    changeSortOrder(sortBy);
+  }
+});
 
 // Wait for 1 second before requesting initial data
 setTimeout(initializeDateInputs, 500);

@@ -1,5 +1,6 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
+import { getSortOrder } from './settings';
 
 interface FieldIndices {
   project: number;
@@ -26,12 +27,14 @@ export class TaskManager {
   private logNoteTag: string = 'time-slip';
   private fieldIndices: FieldIndices | null = null;
   private defaultHeader = "Project,Task,Start date,Start time,End date,End time,Duration";
+  private sortBy: 'duration' | 'endTime' | 'name' = 'duration';
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
     this.panel = panel;
     this.noteId = noteId;
     this.noteManager = noteManager;
+    this.initializeSortOrder();
   }
 
   private getTaskKey(taskName: string, project: string): string {
@@ -234,11 +237,9 @@ export class TaskManager {
   }
 
   private updateCompletedTasks(completedTasks: Array<{ taskName: string; project: string; duration: number; endTime: number }>) {
-    this.completedTasks = completedTasks.sort((a, b) => b.duration - a.duration);
-
     this.joplin.views.panels.postMessage(this.panel, { 
       name: 'updateCompletedTasks', 
-      tasks: this.completedTasks 
+      tasks: completedTasks
     });
   }
 
@@ -371,7 +372,8 @@ export class TaskManager {
       uniqueTasks: this.uniqueTasks,
       uniqueProjects: this.uniqueProjects,
       logNotes: await this.getLogNotes(),
-      defaultNoteId: this.noteId
+      defaultNoteId: this.noteId,
+      sortBy: this.sortBy
     };
   }
 
@@ -408,5 +410,17 @@ export class TaskManager {
     this.completedTasks = [];
     this.updateRunningTasks();
     this.updateCompletedTasks([]);
+  }
+
+  private async initializeSortOrder() {
+    this.sortBy = await getSortOrder();
+  }
+
+  async updateSortOrder(sortOrder: 'duration' | 'endTime' | 'name') {
+    this.sortBy = sortOrder;
+    this.joplin.views.panels.postMessage(this.panel, {
+      name: 'updateSortOrder',
+      sortBy: this.sortBy
+    });
   }
 }

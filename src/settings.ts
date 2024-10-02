@@ -48,6 +48,19 @@ export async function registerSettings() {
         3: 'Note',
       },
     },
+    'timeslip.sortOrder': {
+      value: 'duration',
+      type: SettingItemType.String,
+      section: 'timeslip',
+      public: true,
+      isEnum: true,
+      label: 'Sort completed tasks by',
+      options: {
+        'duration': 'Duration',
+        'endTime': 'End Time',
+        'name': 'Name',
+      },
+    },
   });
 }
 
@@ -73,6 +86,14 @@ export async function getAggregationLevel(): Promise<number> {
 
 export async function setAggregationLevel(level: number): Promise<void> {
   await joplin.settings.setValue('timeslip.aggregationLevel', level);
+}
+
+export async function getSortOrder(): Promise<'duration' | 'endTime' | 'name'> {
+  return await joplin.settings.value('timeslip.sortOrder') as 'duration' | 'endTime' | 'name';
+}
+
+export async function setSortOrder(sortOrder: 'duration' | 'endTime' | 'name'): Promise<void> {
+  await joplin.settings.setValue('timeslip.sortOrder', sortOrder);
 }
 
 let currentStartDate: string | null = null;
