@@ -333,7 +333,7 @@ function updateCompletedTasksDisplay() {
       }
     });
     
-    tasksHtml += '<table>';
+    tasksHtml += '<table class="completed-tasks-table">';
     
     // Table header based on aggregation level
     let headerDuration = 'Duration';
@@ -348,28 +348,28 @@ function updateCompletedTasksDisplay() {
       headerProject += '<span class="arrow-down"></span>';
       headerTask += '<span class="arrow-down"></span>';
     }
+
     if (currentAggregationLevel === 1) {
       tasksHtml += `<tr>
-        <th>${headerTask}</th>
-        <th class="sortable" data-sort="name">${headerProject}</th>
-        ${(
-          currentSortBy === 'endTime') 
-          ? `<th class="sortable" data-sort="endTime">${headerTime}</th>`
-          : `<th class="sortable" data-sort="duration">${headerDuration}</th>`
-        }
-        <th>Action</th>
+        <th class="header-cell sortable" data-sort="name">${headerTask}</th>
+        <th class="header-cell sortable" data-sort="name">${headerProject}</th>
+        <th class="header-cell sortable" data-sort=
+          "${currentSortBy === 'endTime' ? 'endTime' : 'duration'}">
+          ${currentSortBy === 'endTime' ? headerTime : headerDuration}
+        </th>
+        <th class="header-cell">Action</th>
       </tr>`;
     } else if (currentAggregationLevel === 2) {
       tasksHtml += `<tr>
-        <th class="sortable" data-sort="name">${headerProject}</th>
-        <th class="sortable" data-sort="duration">${headerDuration}</th>
-        <th class="sortable" data-sort="endTime">${headerTime}</th>
+        <th class="header-cell sortable" data-sort="name">${headerProject}</th>
+        <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
+        <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>
       </tr>`;
     } else {
       tasksHtml += `<tr>
-        <th>Note</th>
-        <th class="sortable" data-sort="duration">${headerDuration}</th>
-        <th class="sortable" data-sort="endTime">${headerTime}</th>
+        <th class="header-cell">Note</th>
+        <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
+        <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>
       </tr>`;
     }
 
@@ -383,22 +383,22 @@ function updateCompletedTasksDisplay() {
           <td>${originalProject}</td>
           ${
             currentSortBy === 'endTime' ?
-            `<td>${formattedEndTime}</td>` :
-            `<td>${formattedDuration}</td>`
+            `<td style="word-wrap: break-word">${formattedEndTime}</td>` :
+            `<td style="word-wrap: break-word">${formattedDuration}</td>`
           }
-          <td><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
+          <td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
         </tr>`;
       } else if (currentAggregationLevel === 2) {
         tasksHtml += `<tr>
           <td>${name}</td>
-          <td>${formattedDuration}</td>
-          <td>${formattedEndTime}</td>
+          <td style="word-wrap: break-word">${formattedDuration}</td>
+          <td style="word-wrap: break-word">${formattedEndTime}</td>
         </tr>`;
       } else {
         tasksHtml += `<tr>
           <td>${selectedNoteName || 'No note selected'}</td>
-          <td>${formattedDuration}</td>
-          <td>${formattedEndTime}</td>
+          <td style="word-wrap: break-word">${formattedDuration}</td>
+          <td style="word-wrap: break-word">${formattedEndTime}</td>
         </tr>`;
       }
     });

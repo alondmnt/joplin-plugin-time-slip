@@ -149,7 +149,7 @@ body {
     margin-bottom: 10px;
 }
 
-#completedTasks table {
+.completed-tasks-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
@@ -157,9 +157,10 @@ body {
     border-style: solid;
     border-radius: 3px;
     overflow: hidden;
+    table-layout: auto;
 }
 
-#completedTasks th, #completedTasks td {
+.completed-tasks-table .header-cell, .completed-tasks-table td {
     padding: 5px;
     text-align: left;
     border-bottom-width: 1px;
@@ -170,17 +171,25 @@ body {
     border-bottom: none;
 }
 
-#completedTasks th {
+.completed-tasks-table .header-cell {
     background-color: var(--joplin-background-color-hover3);
     font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-#completedTasks tr:nth-child(even) {
+.completed-tasks-table tr:nth-child(even) {
     background-color: var(--joplin-background-color);
 }
 
-#completedTasks tr:nth-child(odd) {
+.completed-tasks-table tr:nth-child(odd) {
     background-color: var(--joplin-background-color3);
+}
+
+.completed-tasks-table td {
+    word-wrap: anywhere;
+    overflow-wrap: anywhere;
 }
 
 .startButton {
