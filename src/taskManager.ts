@@ -275,13 +275,13 @@ export class TaskManager {
       this.updateRunningTasks();
 
       let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
-      let updatedBody = note.body;
+      let updatedBody = note.body.trim();
       note = clearNoteReferences(note);
 
       if (!updatedBody.trim()) {
         // Create header if note is empty
         const header = ['Project', 'Task', 'Start date', 'Start time', 'End date', 'End time', 'Duration'];
-        updatedBody = header.join(',') + '\n';
+        updatedBody = header.join(',');
       }
 
       const newEntry = new Array(7).fill(''); // Create an array with 7 empty strings
@@ -290,7 +290,7 @@ export class TaskManager {
       newEntry[this.fieldIndices.startDate] = formatDate(startTime);
       newEntry[this.fieldIndices.startTime] = formatTime(startTime);
 
-      updatedBody += newEntry.join(',') + '\n';
+      updatedBody += '\n' + newEntry.join(',') + '\n';
 
       await this.noteManager.updateNote(updatedBody);
       await this.scanNoteAndUpdateTasks();
