@@ -376,3 +376,11 @@ body {
 .sortable:hover {
     text-decoration: underline;
 }
+
+.arrow-up::after {
+    content: ' ▲';
+}
+
+.arrow-down::after {
+    content: ' ▼';
+}

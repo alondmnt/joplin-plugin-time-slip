@@ -305,7 +305,6 @@ function aggregateTasks(tasks, level) {
 }
 
 function updateCompletedTasksDisplay() {
-  const completedTasksDiv = document.getElementById('completedTasks');
   const aggregationLevelDiv = document.querySelector('.aggregation-level');
 
   let tasksHtml = '';
@@ -337,28 +336,40 @@ function updateCompletedTasksDisplay() {
     tasksHtml += '<table>';
     
     // Table header based on aggregation level
+    let headerDuration = 'Duration';
+    let headerTime = 'End Time';
+    let headerProject = 'Project';
+    let headerTask = 'Task';
+    if (currentSortBy === 'duration') {
+      headerDuration += '<span class="arrow-up"></span>';
+    } else if (currentSortBy === 'endTime') {
+      headerTime += '<span class="arrow-up"></span>';
+    } else if (currentSortBy === 'name') {
+      headerProject += '<span class="arrow-down"></span>';
+      headerTask += '<span class="arrow-down"></span>';
+    }
     if (currentAggregationLevel === 1) {
       tasksHtml += `<tr>
-        <th>Task</th>
-        <th class="sortable" data-sort="name">Project</th>
+        <th>${headerTask}</th>
+        <th class="sortable" data-sort="name">${headerProject}</th>
         ${(
           currentSortBy === 'endTime') 
-          ? `<th class="sortable" data-sort="endTime">End Time</th>`
-          : `<th class="sortable" data-sort="duration">Duration</th>`
+          ? `<th class="sortable" data-sort="endTime">${headerTime}</th>`
+          : `<th class="sortable" data-sort="duration">${headerDuration}</th>`
         }
         <th>Action</th>
       </tr>`;
     } else if (currentAggregationLevel === 2) {
       tasksHtml += `<tr>
-        <th class="sortable" data-sort="name">Project</th>
-        <th class="sortable" data-sort="duration">Duration</th>
-        <th class="sortable" data-sort="endTime">End Time</th>
+        <th class="sortable" data-sort="name">${headerProject}</th>
+        <th class="sortable" data-sort="duration">${headerDuration}</th>
+        <th class="sortable" data-sort="endTime">${headerTime}</th>
       </tr>`;
     } else {
       tasksHtml += `<tr>
         <th>Note</th>
-        <th class="sortable" data-sort="duration">Duration</th>
-        <th class="sortable" data-sort="endTime">End Time</th>
+        <th class="sortable" data-sort="duration">${headerDuration}</th>
+        <th class="sortable" data-sort="endTime">${headerTime}</th>
       </tr>`;
     }
 
@@ -626,7 +637,7 @@ function setupAutocomplete(input, items) {
 }
 
 function formatDateTime(date) {
-  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+  return `${date.toLocaleDateString()}<br>${date.toLocaleTimeString()}`;
 }
 
 document.getElementById('openNoteButton').addEventListener('click', openSelectedNote);
