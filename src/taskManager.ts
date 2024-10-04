@@ -209,19 +209,23 @@ export class TaskManager {
     const tags = await this.joplin.data.get(['tags'], {
       fields: ['id', 'title'],
     });
-    const timeTag = tags.items.find(tag => tag.title === this.logNoteTag);
-    if (timeTag) {
-      const notes = await this.joplin.data.get(
-        ['tags', timeTag.id, 'notes'],
-        {
-          fields: ['id', 'title'],
-        }
-      );
-      this.logNotes = notes.items;
+    const timeTags = tags.items.filter(tag => tag.title === this.logNoteTag);
+
+    if (timeTags.length > 0) {
+      this.logNotes = [];
+      for (const timeTag of timeTags) {
+        const notes = await this.joplin.data.get(
+          ['tags', timeTag.id, 'notes'],
+          {
+            fields: ['id', 'title'],
+          }
+        );
+        this.logNotes = this.logNotes.concat(notes.items);
+      }
       this.updateLogNotes();
 
     } else {
-      console.log(`No ${this.logNoteTag} tag found`);
+      console.error(`No ${this.logNoteTag} tag found`);
       this.logNotes = [];
       this.updateLogNotes();
     }
