@@ -19,9 +19,6 @@ let uniqueProjects = [];
 let lastStartDate = '';
 let lastEndDate = '';
 
-let removeTaskAutocomplete = null;
-let removeProjectAutocomplete = null;
-
 let runningTasksInterval;
 
 let currentSortBy = 'duration'; // Default sorting option
@@ -232,7 +229,6 @@ webviewApi.onMessage(function(event) {
     updateCompletedTasksDisplay();
     updateAutocompleteLists();
     updateNoteSelector(message.logNotes);
-    updateAutocompleteLists();
     
     // If there's a default note ID, select it and set the selectedNoteName
     if (message.defaultNoteId && noteSelector.querySelector(`option[value="${message.defaultNoteId}"]`)) {
@@ -482,158 +478,182 @@ function applyDateFilter(startDateInput, endDateInput) {
   }
 }
 
-function updateAutocompleteLists() {
-  if (removeTaskAutocomplete) removeTaskAutocomplete();
-  if (removeProjectAutocomplete) removeProjectAutocomplete();
-
-  removeTaskAutocomplete = setupAutocomplete(taskNameInput, uniqueTasks);
-  removeProjectAutocomplete = setupAutocomplete(projectNameInput, uniqueProjects);
-}
-
-function setupAutocomplete(input, items) {
+function createAutocomplete(input, getItems, onSelect) {
   let autocompleteList = null;
   let selectedIndex = -1;
 
-  // Store event listeners so we can remove them later
   const listeners = {
-    input: null,
-    keydown: null,
-    documentClick: null
+    input: handleInput,
+    keydown: handleKeydown,
+    blur: handleBlur,
+    documentClick: handleDocumentClick
   };
 
-  function removeListeners() {
-    if (listeners.input) input.removeEventListener('input', listeners.input);
-    if (listeners.keydown) input.removeEventListener('keydown', listeners.keydown);
-    if (listeners.documentClick) document.removeEventListener('click', listeners.documentClick);
+  function setup() {
+    input.addEventListener('input', listeners.input);
+    input.addEventListener('keydown', listeners.keydown);
+    input.addEventListener('blur', listeners.blur);
+    document.addEventListener('click', listeners.documentClick);
   }
 
-  // Remove any existing listeners before setting up new ones
-  removeListeners();
-
-  // Set up new listeners
-  listeners.input = updateAutocomplete;
-  listeners.keydown = handleKeydown;
-  listeners.documentClick = documentClickHandler;
-
-  input.addEventListener('input', listeners.input);
-  input.addEventListener('keydown', listeners.keydown);
-  document.addEventListener('click', listeners.documentClick);
-
-  function createAutocompleteList() {
+  function teardown() {
+    input.removeEventListener('input', listeners.input);
+    input.removeEventListener('keydown', listeners.keydown);
+    input.removeEventListener('blur', listeners.blur);
+    document.removeEventListener('click', listeners.documentClick);
     if (autocompleteList) {
       autocompleteList.remove();
+      autocompleteList = null;
     }
-    autocompleteList = document.createElement('ul');
-    autocompleteList.className = 'autocomplete-list';
-    autocompleteList.style.display = 'none';
-    input.parentNode.insertBefore(autocompleteList, input.nextSibling);
   }
 
-  function updateAutocomplete() {
-    const value = input.value.toLowerCase();
-    if (!value) {
-      if (autocompleteList) {
-        autocompleteList.style.display = 'none';
-      }
-      return;
-    }
-
-    createAutocompleteList();
-    // Use the current items array, not a closure variable
-    const currentItems = input === taskNameInput ? uniqueTasks : uniqueProjects;
-    const matches = currentItems.filter(item => item.toLowerCase().includes(value));
-    
-    autocompleteList.innerHTML = '';
-    matches.forEach(match => {
-      const li = document.createElement('li');
-      li.textContent = match;
-      li.addEventListener('click', function() {
-        input.value = this.textContent;
-        autocompleteList.style.display = 'none';
-      });
-      autocompleteList.appendChild(li);
-    });
-
-    autocompleteList.style.display = matches.length > 0 ? 'block' : 'none';
-    selectedIndex = -1;
+  function handleInput() {
+    updateAutocompleteList();
   }
 
   function handleKeydown(e) {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      input.value = '';
-      if (autocompleteList) {
-        autocompleteList.style.display = 'none';
-      }
-      return;
-    }
-
     if (!autocompleteList || autocompleteList.style.display === 'none') {
       if (e.key === 'Enter') {
         e.preventDefault();
-        moveToNextOrSubmit();
+        onSelect(input.value);
       }
       return;
     }
-
-    const items = autocompleteList.getElementsByTagName('li');
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        selectedIndex = (selectedIndex + 1) % items.length;
-        updateSelectedItem();
+        moveSelection(1);
         break;
       case 'ArrowUp':
         e.preventDefault();
-        selectedIndex = selectedIndex === -1 ? items.length - 1 : (selectedIndex - 1 + items.length) % items.length;
-        updateSelectedItem();
+        moveSelection(-1);
         break;
       case 'Enter':
         e.preventDefault();
-        if (selectedIndex !== -1) {
-          input.value = items[selectedIndex].textContent;
-        }
-        autocompleteList.style.display = 'none';
-        moveToNextOrSubmit();
+        selectCurrentItem();
         break;
-      case 'Tab':
-        if (selectedIndex !== -1) {
-          input.value = items[selectedIndex].textContent;
-        }
-        autocompleteList.style.display = 'none';
+      case 'Escape':
+        hideAutocompleteList();
         break;
     }
   }
 
-  function moveToNextOrSubmit() {
-    if (input === taskNameInput) {
-      projectNameInput.focus();
-    } else if (input === projectNameInput) {
-      startButton.click();
+  function handleBlur() {
+    setTimeout(hideAutocompleteList, 200);
+  }
+
+  function handleDocumentClick(e) {
+    if (e.target !== input && autocompleteList) {
+      hideAutocompleteList();
     }
+  }
+
+  function updateAutocompleteList() {
+    const items = getItems();
+    const value = input.value.toLowerCase();
+
+    if (!value || items.length === 0) {
+      hideAutocompleteList();
+      return;
+    }
+
+    const matches = items.filter(item => item.toLowerCase().includes(value));
+
+    if (matches.length === 0) {
+      hideAutocompleteList();
+      return;
+    }
+
+    createOrUpdateList(matches);
+  }
+
+  function createOrUpdateList(matches) {
+    if (!autocompleteList) {
+      autocompleteList = document.createElement('ul');
+      autocompleteList.className = 'autocomplete-list';
+      input.parentNode.insertBefore(autocompleteList, input.nextSibling);
+    }
+
+    autocompleteList.innerHTML = '';
+    matches.forEach((match, index) => {
+      const li = document.createElement('li');
+      li.textContent = match;
+      li.addEventListener('click', () => selectItem(match));
+      li.addEventListener('mouseenter', () => {
+        selectedIndex = index;
+        updateSelectedItem();
+      });
+      autocompleteList.appendChild(li);
+    });
+
+    autocompleteList.style.display = 'block';
+    selectedIndex = -1;
+    updateSelectedItem();
+  }
+
+  function hideAutocompleteList() {
+    if (autocompleteList) {
+      autocompleteList.style.display = 'none';
+    }
+  }
+
+  function moveSelection(direction) {
+    const items = autocompleteList.getElementsByTagName('li');
+    selectedIndex = (selectedIndex + direction + items.length) % items.length;
+    updateSelectedItem();
   }
 
   function updateSelectedItem() {
     const items = autocompleteList.getElementsByTagName('li');
     for (let i = 0; i < items.length; i++) {
-      if (i === selectedIndex) {
-        items[i].classList.add('selected');
-        items[i].scrollIntoView({ block: 'nearest' });
-      } else {
-        items[i].classList.remove('selected');
-      }
+      items[i].classList.toggle('selected', i === selectedIndex);
+    }
+    if (selectedIndex >= 0) {
+      items[selectedIndex].scrollIntoView({ block: 'nearest' });
     }
   }
 
-  function documentClickHandler(e) {
-    if (e.target !== input && autocompleteList) {
-      autocompleteList.style.display = 'none';
+  function selectCurrentItem() {
+    const items = autocompleteList.getElementsByTagName('li');
+    if (selectedIndex >= 0 && selectedIndex < items.length) {
+      selectItem(items[selectedIndex].textContent);
     }
   }
 
-  // Return a function that can be used to clean up this autocomplete instance
-  return removeListeners;
+  function selectItem(value) {
+    input.value = value;
+    hideAutocompleteList();
+    onSelect(value);
+  }
+
+  setup();
+
+  return {
+    teardown,
+    updateItems: updateAutocompleteList
+  };
+}
+
+const taskAutocomplete = createAutocomplete(
+  taskNameInput,
+  () => uniqueTasks,
+  (selectedTask) => {
+    projectNameInput.focus();
+  }
+);
+
+const projectAutocomplete = createAutocomplete(
+  projectNameInput,
+  () => uniqueProjects,
+  (selectedProject) => {
+    startButton.click();
+  }
+);
+
+function updateAutocompleteLists() {
+  taskAutocomplete.updateItems();
+  projectAutocomplete.updateItems();
 }
 
 function formatDateTime(date) {
