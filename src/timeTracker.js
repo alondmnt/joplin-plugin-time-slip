@@ -678,6 +678,26 @@ completedTasksDiv.addEventListener('click', function(event) {
   }
 });
 
+function handleEscapeKey(input) {
+  if (input.value !== '') {
+    input.value = '';
+  } else {
+    taskNameInput.focus();
+  }
+}
+
+taskNameInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    handleEscapeKey(taskNameInput);
+  }
+});
+
+projectNameInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    handleEscapeKey(projectNameInput);
+  }
+});
+
 // Wait for 1 second before requesting initial data
 setTimeout(initializeDateInputs, 500);
 setTimeout(requestInitialData, 1000);
