@@ -329,6 +329,9 @@ function updateCompletedTasksDisplay() {
       }
     });
     
+    const timeTrackerWidth = document.getElementById('timeTracker').offsetWidth;
+    const showBothColumns = timeTrackerWidth > 340;  // in pixels
+
     tasksHtml += '<table class="completed-tasks-table">';
     
     // Table header based on aggregation level
@@ -349,10 +352,13 @@ function updateCompletedTasksDisplay() {
       tasksHtml += `<tr>
         <th class="header-cell sortable" data-sort="name">${headerTask}</th>
         <th class="header-cell sortable" data-sort="name">${headerProject}</th>
-        <th class="header-cell sortable" data-sort=
-          "${currentSortBy === 'endTime' ? 'endTime' : 'duration'}">
-          ${currentSortBy === 'endTime' ? headerTime : headerDuration}
-        </th>
+        ${showBothColumns ? 
+          `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
+           <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>` :
+          `<th class="header-cell sortable" data-sort="${currentSortBy === 'endTime' ? 'endTime' : 'duration'}">
+             ${currentSortBy === 'endTime' ? headerTime : headerDuration}
+           </th>`
+        }
         <th class="header-cell">Action</th>
       </tr>`;
     } else if (currentAggregationLevel === 2) {
@@ -377,10 +383,12 @@ function updateCompletedTasksDisplay() {
         tasksHtml += `<tr>
           <td>${originalTask}</td>
           <td>${originalProject}</td>
-          ${
-            currentSortBy === 'endTime' ?
-            `<td style="word-wrap: break-word">${formattedEndTime}</td>` :
-            `<td style="word-wrap: break-word">${formattedDuration}</td>`
+          ${showBothColumns ?
+            `<td style="word-wrap: break-word">${formattedDuration}</td>
+             <td style="word-wrap: break-word">${formattedEndTime}</td>` :
+            `<td style="word-wrap: break-word">
+               ${currentSortBy === 'endTime' ? formattedEndTime : formattedDuration}
+             </td>`
           }
           <td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
         </tr>`;
