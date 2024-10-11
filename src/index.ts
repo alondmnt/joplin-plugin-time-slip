@@ -93,9 +93,10 @@ joplin.plugins.register({
       }
       if (event.keys.includes('timeslip.summarySortOrder')) {
         const newSortOrder = await getSummarySortOrder();
-        await taskManager.updateSortOrder(newSortOrder);
+        await taskManager.updateSummarySortOrder(newSortOrder);
       }
       if (event.keys.includes('timeslip.logSortOrder')) {
+        await taskManager.updateLogSortOrder();
         await taskManager.scanNoteAndUpdateTasks();
       }
     });
@@ -174,7 +175,7 @@ joplin.plugins.register({
 
       } else if (message.name === 'changeSortOrder') {
         if (noteId) {
-          await taskManager.updateSortOrder(message.sortBy);
+          await taskManager.updateSummarySortOrder(message.sortBy);
           await joplin.settings.setValue('timeslip.summarySortOrder', message.sortBy);
           await taskManager.scanNoteAndUpdateTasks();
         } else {

@@ -12,6 +12,18 @@ interface FieldIndices {
   duration: number;
 }
 
+interface ScanResult {
+  openTasks: { [key: string]: { startTime: number; project: string } };
+  completedTasks: { [key: string]: { taskName: string; project: string; duration: number; startTime: number; endTime: number } };
+  tasksSet: Set<string>;
+  projectsSet: Set<string>;
+  sortableTasks: Array<{ index: number; startTime: number; line: string }>;
+  unknownTasks: Array<{ index: number, line: string }>;
+  durationChanged: boolean;
+  isSorted: boolean;
+  lines: string[];
+}
+
 export class TaskManager {
   private tasks: { [key: string]: { startTime: number; project: string } } = {};
   private joplin: any;
@@ -29,6 +41,7 @@ export class TaskManager {
   private defaultHeader = "Project,Task,Start date,Start time,End date,End time,Duration";
   private sortBy: 'duration' | 'endTime' | 'name' = 'duration';
   public debouncedScanAndUpdate: ReturnType<typeof debounce>;
+  private logSortOrder: 'ascending' | 'descending' = 'ascending';
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -37,6 +50,7 @@ export class TaskManager {
     this.noteManager = noteManager;
     this.initializeSortOrder();
     this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), 4000);
+    this.updateLogSortOrder();
   }
 
   private getTaskKey(taskName: string, project: string): string {
@@ -94,200 +108,233 @@ export class TaskManager {
       return;
     }
 
-    let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     try {
-      if (!note || note === null) {
-        console.error('Note not found or is null');
-        this.joplin.views.panels.postMessage(this.panel, { 
-          name: 'error', 
-          message: 'The selected note could not be found. Note ID: ' + this.noteId
-        });
-        return;
+      const scanResult = await this.scanNote();
+      if (scanResult) {
+        await this.updateTasksAndNote(scanResult);
       }
-
-      if (note.body === undefined || note.body === null) {
-        console.error('Note body is undefined or null');
-        this.joplin.views.panels.postMessage(this.panel, { 
-          name: 'error', 
-          message: 'The selected note has no content. Note ID: ' + this.noteId
-        });
-        return;
-      }
-
-      const lines = this.ensureNoteHasHeader(note.body).split('\n');
-
-      // Infer field indices from the header
-      this.fieldIndices = this.inferFieldIndices(lines[0]);
-      if (!this.fieldIndices) {
-        this.joplin.views.panels.postMessage(this.panel, { 
-          name: 'error', 
-          message: 'Invalid header format' 
-        });
-        return;
-      }
-
-      const openTasks: { [key: string]: { startTime: number; project: string } } = {};
-      const completedTasks: { [key: string]: { taskName: string; project: string; duration: number; startTime: number; endTime: number } } = {};
-      const tasksSet = new Set<string>();
-      const projectsSet = new Set<string>();
-      const sortableTasks: Array<{ index: number; startTime: number; line: string }> = [];
-      const unknownTasks: Array<{ index: number, line: string }> = [];
-      const timeLogSortOrder = await getLogSortOrder();
-
-      const startDate = this.currentStartDate ? new Date(this.currentStartDate) : null;
-      const endDate = this.currentEndDate ? new Date(this.currentEndDate) : null;
-
-      if (startDate) startDate.setHours(0, 0, 0, 0);
-      if (endDate) endDate.setHours(23, 59, 59, 999);
-
-      let durationChanged = false;
-      let isSorted = true;
-      let previousStartTime = timeLogSortOrder === 'ascending' ? 0 : Number.MAX_SAFE_INTEGER;
-
-      // Skip the header line
-      for (let i = 1; i < lines.length; i++) {
-        const fields = lines[i].split(',').map(field => field.trim());
-        const project = fields[this.fieldIndices.project];
-        const taskName = fields[this.fieldIndices.taskName];
-        const startDateStr = fields[this.fieldIndices.startDate];
-        const startTimeStr = fields[this.fieldIndices.startTime];
-        const endDateStr = fields[this.fieldIndices.endDate];
-        const endTimeStr = fields[this.fieldIndices.endTime];
-        const duration = fields[this.fieldIndices.duration];
-        
-        if (taskName) tasksSet.add(taskName);
-        if (project) projectsSet.add(project);
-
-        if (startTimeStr) {
-          const startDateTime = new Date(`${startDateStr} ${startTimeStr}`);
-          const currentStartTime = startDateTime.getTime();
-          
-          // Check if the lines are sorted according to timeLogSortOrder
-          if ((timeLogSortOrder === 'ascending' && currentStartTime < previousStartTime) ||
-              (timeLogSortOrder === 'descending' && currentStartTime > previousStartTime)) {
-            isSorted = false
-          }
-          previousStartTime = currentStartTime;
-
-          if (endTimeStr) {
-            // Completed task
-            const endDateTime = new Date(`${endDateStr} ${endTimeStr}`);
-            const calculatedDurationMs = endDateTime.getTime() - startDateTime.getTime();
-            const calculatedDuration = formatDuration(calculatedDurationMs);
-          
-            if (calculatedDuration !== duration) {
-              // Update the line with the correct duration
-              fields[this.fieldIndices.duration] = calculatedDuration;
-              lines[i] = fields.join(',');
-              durationChanged = true;
-            }
-
-            if (this.isTaskInDateRange(startDateTime, startDate, endDate)) {
-              const taskKey = this.getTaskKey(taskName, project);
-              if (taskKey in completedTasks) {
-                completedTasks[taskKey].duration += calculatedDurationMs;
-                completedTasks[taskKey].startTime = Math.min(completedTasks[taskKey].startTime, startDateTime.getTime());
-                completedTasks[taskKey].endTime = Math.max(completedTasks[taskKey].endTime, endDateTime.getTime());
-              } else {
-                completedTasks[taskKey] = {
-                  taskName,
-                  project,
-                  duration: calculatedDurationMs,
-                  startTime: startDateTime.getTime(),
-                  endTime: endDateTime.getTime()
-                };
-              }
-            }
-
-          } else {
-            // Open task
-            const taskKey = this.getTaskKey(taskName, project);
-            openTasks[taskKey] = { startTime: startDateTime.getTime(), project };
-          }
-
-          // Push to sortableTasks after processing the entire line
-          sortableTasks.push({ index: i, startTime: currentStartTime, line: lines[i] });
-
-        } else {
-          unknownTasks.push( { index: i, line: lines[i], } );
-        }
-      }
-
-      // Update the note if content has changed due to sorting or duration changes
-      let updatedContent = '';
-      if (!isSorted) {
-        sortableTasks.sort((a, b) => {
-          const comparison = a.startTime - b.startTime;
-          return timeLogSortOrder === 'ascending' ? comparison : -comparison;
-        });
-
-        // Reconstruct the sorted note content
-        const header = lines[0];
-        const sortedLines = sortableTasks.map(task => task.line);
-        
-        // Create an array to hold all lines
-        const allLines = [header];
-
-        // Combine sorted tasks and unknown tasks, preserving original indices for unknown tasks
-        let sortedIndex = 0;
-        let unknownIndex = 0;
-
-        for (let i = 1; i < lines.length; i++) {
-          if (unknownIndex < unknownTasks.length && unknownTasks[unknownIndex].index === i) {
-            allLines.push(unknownTasks[unknownIndex].line);
-            unknownIndex++;
-          } else if (sortedIndex < sortedLines.length) {
-            allLines.push(sortedLines[sortedIndex]);
-            sortedIndex++;
-          }
-        }
-
-        // Add any remaining sorted tasks (if any)
-        allLines.push(...sortedLines.slice(sortedIndex));
-
-        updatedContent = allLines.join('\n');
-
-      } else if (durationChanged) {
-        updatedContent = lines.join('\n');
-      }
-
-      if (!isSorted || durationChanged) {
-        try {
-          await this.noteManager.updateNote(updatedContent);
-
-        } catch (updateError) {
-          console.error('Error updating note:', updateError);
-          this.joplin.views.panels.postMessage(this.panel, { 
-            name: 'error', 
-            message: 'Failed to update the note. Please try again.'
-          });
-        }
-      }
-
-      // Update tasks
-      this.tasks = openTasks;
-      this.updateRunningTasks();
-
-      // Update completed tasks
-      this.updateCompletedTasks(Object.values(completedTasks));
-
-      // Update autocomplete lists
-      this.uniqueTasks = Array.from(tasksSet).sort((a, b) => a.localeCompare(b));
-      this.uniqueProjects = Array.from(projectsSet).sort((a, b) => a.localeCompare(b));
-      this.updateAutocompleteLists();
-
-      // Scan for log notes
-      await this.getLogNotes();
-
     } catch (error) {
-      console.error('Error in scanNoteAndUpdateTasks:', error);
+      console.error('scanNoteAndUpdateTasks:', error);
       this.joplin.views.panels.postMessage(this.panel, { 
         name: 'error', 
-        message: 'An error occurred while scanning the note. Note ID: ' + this.noteId
+        message: 'An error occurred while scanning or updating the note. Note ID: ' + this.noteId
+      });
+    }
+  }
+
+  private async scanNote() {
+    let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
+    
+    if (!note || note.body === undefined || note.body === null) {
+      this.handleNoteError(note);
+      return null;
+    }
+
+    const lines = this.ensureNoteHasHeader(note.body).split('\n');
+    note = clearNoteReferences(note);
+    this.fieldIndices = this.inferFieldIndices(lines[0]);
+    
+    if (!this.fieldIndices) {
+      this.joplin.views.panels.postMessage(this.panel, { 
+        name: 'error', 
+        message: 'Invalid header format' 
+      });
+      return null;
+    }
+
+    const scanResult = this.processNoteLines(lines);
+    return scanResult;
+  }
+
+  private processNoteLines(lines: string[]): ScanResult {
+    const openTasks: { [key: string]: { startTime: number; project: string } } = {};
+    const completedTasks: { [key: string]: { taskName: string; project: string; duration: number; startTime: number; endTime: number } } = {};
+    const tasksSet = new Set<string>();
+    const projectsSet = new Set<string>();
+    const sortableTasks: Array<{ index: number; startTime: number; line: string }> = [];
+    const unknownTasks: Array<{ index: number, line: string }> = [];
+    let durationChanged = false;
+    let isSorted = true;
+    let previousStartTime = this.logSortOrder === 'ascending' ? 0 : Number.MAX_SAFE_INTEGER;
+
+    const startDate = this.currentStartDate ? new Date(this.currentStartDate) : null;
+    const endDate = this.currentEndDate ? new Date(this.currentEndDate) : null;
+
+    if (startDate) startDate.setHours(0, 0, 0, 0);
+    if (endDate) endDate.setHours(23, 59, 59, 999);
+
+    // Skip the header line
+    for (let i = 1; i < lines.length; i++) {
+      const fields = lines[i].split(',').map(field => field.trim());
+      const project = fields[this.fieldIndices.project];
+      const taskName = fields[this.fieldIndices.taskName];
+      const startDateStr = fields[this.fieldIndices.startDate];
+      const startTimeStr = fields[this.fieldIndices.startTime];
+      const endDateStr = fields[this.fieldIndices.endDate];
+      const endTimeStr = fields[this.fieldIndices.endTime];
+      const duration = fields[this.fieldIndices.duration];
+      
+      if (taskName) tasksSet.add(taskName);
+      if (project) projectsSet.add(project);
+
+      if (startTimeStr) {
+        const startDateTime = new Date(`${startDateStr} ${startTimeStr}`);
+        const currentStartTime = startDateTime.getTime();
+        
+        // Check if the lines are sorted according to the log sort order
+        if ((this.logSortOrder === 'ascending' && currentStartTime < previousStartTime) ||
+            (this.logSortOrder === 'descending' && currentStartTime > previousStartTime)) {
+          isSorted = false;
+        }
+        previousStartTime = currentStartTime;
+
+        if (endTimeStr) {
+          // Completed task
+          const endDateTime = new Date(`${endDateStr} ${endTimeStr}`);
+          const calculatedDurationMs = endDateTime.getTime() - startDateTime.getTime();
+          const calculatedDuration = formatDuration(calculatedDurationMs);
+          
+          if (calculatedDuration !== duration) {
+            // Update the line with the correct duration
+            fields[this.fieldIndices.duration] = calculatedDuration;
+            lines[i] = fields.join(',');
+            durationChanged = true;
+          }
+
+          if (this.isTaskInDateRange(startDateTime, startDate, endDate)) {
+            const taskKey = this.getTaskKey(taskName, project);
+            if (taskKey in completedTasks) {
+              completedTasks[taskKey].duration += calculatedDurationMs;
+              completedTasks[taskKey].startTime = Math.min(completedTasks[taskKey].startTime, startDateTime.getTime());
+              completedTasks[taskKey].endTime = Math.max(completedTasks[taskKey].endTime, endDateTime.getTime());
+
+            } else {
+              completedTasks[taskKey] = {
+                taskName,
+                project,
+                duration: calculatedDurationMs,
+                startTime: startDateTime.getTime(),
+                endTime: endDateTime.getTime()
+              };
+            }
+          }
+
+        } else {
+          // Open task
+          const taskKey = this.getTaskKey(taskName, project);
+          openTasks[taskKey] = { startTime: startDateTime.getTime(), project };
+        }
+
+        // Push to sortableTasks after processing the entire line
+        sortableTasks.push({ index: i, startTime: currentStartTime, line: lines[i] });
+
+      } else {
+        unknownTasks.push( { index: i, line: lines[i], } );
+      }
+    }
+
+    return {
+      openTasks,
+      completedTasks,
+      tasksSet,
+      projectsSet,
+      sortableTasks,
+      unknownTasks,
+      durationChanged,
+      isSorted,
+      lines
+    };
+  }
+
+  private async updateTasksAndNote(scanResult: ScanResult) {
+    const {
+      openTasks,
+      completedTasks,
+      tasksSet,
+      projectsSet,
+      sortableTasks,
+      unknownTasks,
+      durationChanged,
+      isSorted,
+      lines
+    } = scanResult;
+
+    // Update note content if necessary
+    if (!isSorted || durationChanged) {``
+      const updatedContent = await this.getUpdatedNoteContent(sortableTasks, unknownTasks, lines, isSorted, durationChanged);
+      if (updatedContent) {
+        await this.noteManager.updateNote(updatedContent);
+      }
+    }
+
+    // Update tasks and UI
+    this.tasks = openTasks;
+    this.updateRunningTasks();
+    this.updateCompletedTasks(Object.values(completedTasks));
+    this.updateAutocompleteLists(Array.from(tasksSet), Array.from(projectsSet));
+    await this.getLogNotes();
+  }
+
+  private async getUpdatedNoteContent(
+    sortableTasks: Array<{ index: number; startTime: number; line: string }>, 
+    unknownTasks: Array<{ index: number, line: string }>, 
+    lines: string[], 
+    isSorted: boolean, 
+    durationChanged: boolean
+  ): Promise<string | null> {
+    if (!isSorted) {
+      sortableTasks.sort((a, b) => {
+        const comparison = a.startTime - b.startTime;
+        return this.logSortOrder === 'ascending' ? comparison : -comparison;
       });
 
-    } finally {
-      note = clearNoteReferences(note);
+      // Reconstruct the sorted note content
+      const header = lines[0];
+      const sortedLines = sortableTasks.map(task => task.line);
+      
+      // Create an array to hold all lines
+      const allLines = [header];
+
+      // Combine sorted tasks and unknown tasks, preserving original indices for unknown tasks
+      let sortedIndex = 0;
+      let unknownIndex = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        if (unknownIndex < unknownTasks.length && unknownTasks[unknownIndex].index === i) {
+          allLines.push(unknownTasks[unknownIndex].line);
+          unknownIndex++;
+
+        } else if (sortedIndex < sortedLines.length) {
+          allLines.push(sortedLines[sortedIndex]);
+          sortedIndex++;
+        }
+      }
+
+      // Add any remaining sorted tasks (if any)
+      allLines.push(...sortedLines.slice(sortedIndex));
+
+      return allLines.join('\n');
+
+    } else if (durationChanged) {
+      return lines.join('\n');
+    }
+
+    return null; // No changes needed
+  }
+
+  private handleNoteError(note) {
+    if (!note) {
+      console.error('Note not found or is null');
+      this.joplin.views.panels.postMessage(this.panel, { 
+        name: 'error', 
+        message: 'The selected note could not be found. Note ID: ' + this.noteId
+      });
+    } else {
+      console.error('Note body is undefined or null');
+      this.joplin.views.panels.postMessage(this.panel, { 
+        name: 'error', 
+        message: 'The selected note has no content. Note ID: ' + this.noteId
+      });
     }
   }
 
@@ -328,11 +375,11 @@ export class TaskManager {
     return this.logNotes;
   }
 
-  private updateAutocompleteLists() {
+  private updateAutocompleteLists(uniqueTasks: string[], uniqueProjects: string[]) {
     this.joplin.views.panels.postMessage(this.panel, {
       name: 'updateAutocompleteLists',
-      tasks: this.uniqueTasks,
-      projects: this.uniqueProjects
+      tasks: uniqueTasks,
+      projects: uniqueProjects
     });
   }
 
@@ -514,11 +561,15 @@ export class TaskManager {
     this.sortBy = await getSummarySortOrder();
   }
 
-  async updateSortOrder(sortOrder: 'duration' | 'endTime' | 'name') {
+  async updateSummarySortOrder(sortOrder: 'duration' | 'endTime' | 'name') {
     this.sortBy = sortOrder;
     this.joplin.views.panels.postMessage(this.panel, {
       name: 'updateSortOrder',
       sortBy: this.sortBy
     });
+  }
+
+  async updateLogSortOrder() {
+    this.logSortOrder = await getLogSortOrder();
   }
 }
