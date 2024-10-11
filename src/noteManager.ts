@@ -44,7 +44,7 @@ export class NoteManager {
   handleNoteChange = async (event: any) => {
     let currentNote = await this.joplin.workspace.selectedNote();
     if (currentNote && currentNote.id === this.noteId) {
-      await this.taskManager.scanNoteAndUpdateTasks();
+      this.taskManager.debouncedScanAndUpdate();
     }
     currentNote = clearNoteReferences(currentNote);
   }

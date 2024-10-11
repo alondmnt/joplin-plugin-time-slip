@@ -1,4 +1,4 @@
-import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
+import { formatDuration, formatDate, formatTime, clearNoteReferences, debounce } from './utils';
 import { NoteManager } from './noteManager';
 import { getSortOrder } from './settings';
 
@@ -28,6 +28,7 @@ export class TaskManager {
   private fieldIndices: FieldIndices | null = null;
   private defaultHeader = "Project,Task,Start date,Start time,End date,End time,Duration";
   private sortBy: 'duration' | 'endTime' | 'name' = 'duration';
+  public debouncedScanAndUpdate: ReturnType<typeof debounce>;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -35,6 +36,7 @@ export class TaskManager {
     this.noteId = noteId;
     this.noteManager = noteManager;
     this.initializeSortOrder();
+    this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), 4000);
   }
 
   private getTaskKey(taskName: string, project: string): string {

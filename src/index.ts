@@ -67,8 +67,7 @@ joplin.plugins.register({
     }
 
     await joplin.workspace.onSyncComplete(async () => await taskManager.scanNoteAndUpdateTasks());
-    const debouncedHandleNoteChange = debounce(noteManager.handleNoteChange, 4000);
-    await joplin.workspace.onNoteChange(debouncedHandleNoteChange);
+    await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
     await joplin.workspace.onNoteSelectionChange(noteManager.handleNoteSelectionChange);
 
     await joplin.commands.register({
