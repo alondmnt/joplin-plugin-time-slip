@@ -48,7 +48,7 @@ export async function registerSettings() {
         3: 'Note',
       },
     },
-    'timeslip.sortOrder': {
+    'timeslip.summarySortOrder': {
       value: 'duration',
       type: SettingItemType.String,
       section: 'timeslip',
@@ -101,12 +101,12 @@ export async function setAggregationLevel(level: number): Promise<void> {
   await joplin.settings.setValue('timeslip.aggregationLevel', level);
 }
 
-export async function getSortOrder(): Promise<'duration' | 'endTime' | 'name'> {
-  return await joplin.settings.value('timeslip.sortOrder') as 'duration' | 'endTime' | 'name';
+export async function getSummarySortOrder(): Promise<'duration' | 'endTime' | 'name'> {
+  return await joplin.settings.value('timeslip.summarySortOrder') as 'duration' | 'endTime' | 'name';
 }
 
-export async function setSortOrder(sortOrder: 'duration' | 'endTime' | 'name'): Promise<void> {
-  await joplin.settings.setValue('timeslip.sortOrder', sortOrder);
+export async function setSummarySortOrder(sortOrder: 'duration' | 'endTime' | 'name'): Promise<void> {
+  await joplin.settings.setValue('timeslip.summarySortOrder', sortOrder);
 }
 
 export async function getLogSortOrder(): Promise<'ascending' | 'descending'> {

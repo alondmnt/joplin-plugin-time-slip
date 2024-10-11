@@ -2,7 +2,7 @@ import joplin from 'api';
 import { MenuItemLocation } from 'api/types';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
-import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel, getSortOrder } from './settings';
+import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel, getSummarySortOrder } from './settings';
 import { debounce } from './utils';
 
 joplin.plugins.register({
@@ -91,8 +91,8 @@ joplin.plugins.register({
         await taskManager.setLogNoteTag(newLogNoteTag);
         noteId = ''; // Reset the selected note
       }
-      if (event.keys.includes('timeslip.sortOrder')) {
-        const newSortOrder = await getSortOrder();
+      if (event.keys.includes('timeslip.summarySortOrder')) {
+        const newSortOrder = await getSummarySortOrder();
         await taskManager.updateSortOrder(newSortOrder);
       }
       if (event.keys.includes('timeslip.logSortOrder')) {
@@ -175,7 +175,7 @@ joplin.plugins.register({
       } else if (message.name === 'changeSortOrder') {
         if (noteId) {
           await taskManager.updateSortOrder(message.sortBy);
-          await joplin.settings.setValue('timeslip.sortOrder', message.sortBy);
+          await joplin.settings.setValue('timeslip.summarySortOrder', message.sortBy);
           await taskManager.scanNoteAndUpdateTasks();
         } else {
           await joplin.views.panels.postMessage(panel, { 

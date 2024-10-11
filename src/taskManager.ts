@@ -1,6 +1,6 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences, debounce } from './utils';
 import { NoteManager } from './noteManager';
-import { getSortOrder, getLogSortOrder } from './settings';
+import { getSummarySortOrder, getLogSortOrder } from './settings';
 
 interface FieldIndices {
   project: number;
@@ -471,7 +471,7 @@ export class TaskManager {
   }
 
   private async initializeSortOrder() {
-    this.sortBy = await getSortOrder();
+    this.sortBy = await getSummarySortOrder();
   }
 
   async updateSortOrder(sortOrder: 'duration' | 'endTime' | 'name') {
