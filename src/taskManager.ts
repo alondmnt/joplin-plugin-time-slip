@@ -131,12 +131,18 @@ export class TaskManager {
       const tasksSet = new Set<string>();
       const projectsSet = new Set<string>();
       const sortableTasks: Array<{ index: number; startTime: number; line: string }> = [];
+      const unknownTasks: Array<{ index: number, line: string }> = [];
+      const timeLogSortOrder = await getLogSortOrder();
 
       const startDate = this.currentStartDate ? new Date(this.currentStartDate) : null;
       const endDate = this.currentEndDate ? new Date(this.currentEndDate) : null;
 
       if (startDate) startDate.setHours(0, 0, 0, 0);
       if (endDate) endDate.setHours(23, 59, 59, 999);
+
+      let durationChanged = false;
+      let isSorted = true;
+      let previousStartTime = timeLogSortOrder === 'ascending' ? 0 : Number.MAX_SAFE_INTEGER;
 
       // Skip the header line
       for (let i = 1; i < lines.length; i++) {
@@ -154,7 +160,14 @@ export class TaskManager {
 
         if (startTimeStr) {
           const startDateTime = new Date(`${startDateStr} ${startTimeStr}`);
-          sortableTasks.push({ index: i, startTime: startDateTime.getTime(), line: lines[i] });
+          const currentStartTime = startDateTime.getTime();
+          
+          // Check if the lines are sorted according to timeLogSortOrder
+          if ((timeLogSortOrder === 'ascending' && currentStartTime < previousStartTime) ||
+              (timeLogSortOrder === 'descending' && currentStartTime > previousStartTime)) {
+            isSorted = false
+          }
+          previousStartTime = currentStartTime;
 
           if (endTimeStr) {
             // Completed task
@@ -166,6 +179,7 @@ export class TaskManager {
               // Update the line with the correct duration
               fields[this.fieldIndices.duration] = calculatedDuration;
               lines[i] = fields.join(',');
+              durationChanged = true;
             }
 
             if (this.isTaskInDateRange(startDateTime, startDate, endDate)) {
@@ -184,28 +198,60 @@ export class TaskManager {
                 };
               }
             }
+
           } else {
             // Open task
             const taskKey = this.getTaskKey(taskName, project);
             openTasks[taskKey] = { startTime: startDateTime.getTime(), project };
           }
+
+          // Push to sortableTasks after processing the entire line
+          sortableTasks.push({ index: i, startTime: currentStartTime, line: lines[i] });
+
+        } else {
+          unknownTasks.push( { index: i, line: lines[i], } );
         }
       }
 
-      // Sort tasks based on start time
-      const timeLogSortOrder = await getLogSortOrder();
-      sortableTasks.sort((a, b) => {
-        const comparison = a.startTime - b.startTime;
-        return timeLogSortOrder === 'ascending' ? comparison : -comparison;
-      });
+      // Update the note if content has changed due to sorting or duration changes
+      let updatedContent = '';
+      if (!isSorted) {
+        sortableTasks.sort((a, b) => {
+          const comparison = a.startTime - b.startTime;
+          return timeLogSortOrder === 'ascending' ? comparison : -comparison;
+        });
 
-      // Reconstruct the sorted note content
-      const header = lines[0];
-      const sortedLines = sortableTasks.map(task => task.line);
-      const updatedContent = [header, ...sortedLines].join('\n');
+        // Reconstruct the sorted note content
+        const header = lines[0];
+        const sortedLines = sortableTasks.map(task => task.line);
+        
+        // Create an array to hold all lines
+        const allLines = [header];
 
-      // Update the note if content has changed
-      if (updatedContent !== note.body) {
+        // Combine sorted tasks and unknown tasks, preserving original indices for unknown tasks
+        let sortedIndex = 0;
+        let unknownIndex = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+          if (unknownIndex < unknownTasks.length && unknownTasks[unknownIndex].index === i) {
+            allLines.push(unknownTasks[unknownIndex].line);
+            unknownIndex++;
+          } else if (sortedIndex < sortedLines.length) {
+            allLines.push(sortedLines[sortedIndex]);
+            sortedIndex++;
+          }
+        }
+
+        // Add any remaining sorted tasks (if any)
+        allLines.push(...sortedLines.slice(sortedIndex));
+
+        updatedContent = allLines.join('\n');
+
+      } else if (durationChanged) {
+        updatedContent = lines.join('\n');
+      }
+
+      if (!isSorted || durationChanged) {
         try {
           await this.noteManager.updateNote(updatedContent);
 
