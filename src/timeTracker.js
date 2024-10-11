@@ -147,12 +147,21 @@ document.getElementById('completedTasks').addEventListener('click', function(eve
 function updateNoteSelector(logNotes) {
   const previousNoteId = noteSelector.value;
   noteSelector.innerHTML = (logNotes.length > 0) ? '' : `<option value="">To start, tag a new note with a time-slip tag</option>`;
+  
+  const addedNoteIds = new Set();
   logNotes.forEach(note => {
-    const option = document.createElement('option');
-    option.value = note.id;
-    option.textContent = note.title;
-    noteSelector.appendChild(option);
+    // Only add the note if we haven't seen its ID before
+    if (!addedNoteIds.has(note.id)) {
+      const option = document.createElement('option');
+      option.value = note.id;
+      option.textContent = note.title;
+      noteSelector.appendChild(option);
+      
+      // Add the note ID to our Set
+      addedNoteIds.add(note.id);
+    }
   });
+
   if (logNotes.length > 0) {
     if (previousNoteId && logNotes.some(note => note.id === previousNoteId)) {
       noteSelector.value = previousNoteId;
