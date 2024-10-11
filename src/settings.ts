@@ -13,7 +13,7 @@ export async function registerSettings() {
       type: SettingItemType.String,
       section: 'timeslip',
       public: true,
-      label: 'Log note tag',
+      label: 'Time log tag',
       description: 'Tag for notes that contain time tracking logs. Default: time-slip',
     },
     'timeslip.defaultNoteId': {
@@ -21,7 +21,7 @@ export async function registerSettings() {
       type: SettingItemType.String,
       section: 'timeslip',
       public: true,
-      label: 'Default log note ID',
+      label: 'Default time log note ID',
     },
     'timeslip.defaultDateRange': {
       value: 7,
@@ -41,7 +41,7 @@ export async function registerSettings() {
       public: true,
       isEnum: true,
       label: 'Aggregation level',
-      description: 'For summarizing completed tasks',
+      description: 'For summarising completed tasks',
       options: {
         1: 'Task',
         2: 'Project',
@@ -67,7 +67,7 @@ export async function registerSettings() {
       section: 'timeslip',
       public: true,
       isEnum: true,
-      label: 'Sort time logs by',
+      label: 'Order of time logs',
       description: 'Sort order for tasks in the time log based on start time',
       options: {
         'ascending': 'Ascending',
