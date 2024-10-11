@@ -95,6 +95,9 @@ joplin.plugins.register({
         const newSortOrder = await getSortOrder();
         await taskManager.updateSortOrder(newSortOrder);
       }
+      if (event.keys.includes('timeslip.logSortOrder')) {
+        await taskManager.scanNoteAndUpdateTasks();
+      }
     });
 
     await joplin.views.panels.onMessage(panel, async (message) => {
