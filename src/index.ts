@@ -85,6 +85,22 @@ joplin.plugins.register({
     });
     await joplin.views.menuItems.create('timeslip.togglePanel', 'timeslip.togglePanel', MenuItemLocation.View);
 
+    await joplin.commands.register({
+      name: 'timeslip.sortTimeLog',
+      label: 'Sort Time Slip log',
+      iconName: 'fas fa-sort',
+      execute: async () => {
+        if (noteId) {
+          await taskManager.updateEnforceSorting(true);
+          await taskManager.scanNoteAndUpdateTasks();
+          await taskManager.updateEnforceSorting();
+        } else {
+          await joplin.views.dialogs.showMessageBox('Please select a time log note first.');
+        }
+      }
+    });
+    await joplin.views.menuItems.create('timeslip.sortTimeLog', 'timeslip.sortTimeLog', MenuItemLocation.Note);
+
     await joplin.settings.onChange(async (event) => {
       if (event.keys.includes('timeslip.logNoteTag')) {
         const newLogNoteTag = await joplin.settings.value('timeslip.logNoteTag');

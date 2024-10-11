@@ -583,7 +583,11 @@ export class TaskManager {
     this.logSortOrder = await getLogSortOrder();
   }
 
-  async updateEnforceSorting() {
-    this.enforceSorting = await getEnforceSorting();
+  async updateEnforceSorting(enforce: boolean | null = null) {
+    if (enforce !== null) {
+      this.enforceSorting = enforce;
+    } else {
+      this.enforceSorting = await getEnforceSorting();
+    }
   }
 }
