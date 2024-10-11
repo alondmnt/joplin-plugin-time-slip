@@ -67,12 +67,20 @@ export async function registerSettings() {
       section: 'timeslip',
       public: true,
       isEnum: true,
-      label: 'Time log sort order',
+      label: 'Sort time logs by',
       description: 'Sort order for tasks in the time log based on start time',
       options: {
         'ascending': 'Ascending',
         'descending': 'Descending',
       },
+    },
+    'timeslip.enforceLogSort': {
+      value: false,
+      type: SettingItemType.Bool,
+      section: 'timeslip',
+      public: true,
+      label: 'Auto-sort time logs',
+      description: 'Automatically sort tasks in time log notes based on start time',
     },
   });
 }
@@ -115,6 +123,14 @@ export async function getLogSortOrder(): Promise<'ascending' | 'descending'> {
 
 export async function setLogSortOrder(sortOrder: 'ascending' | 'descending'): Promise<void> {
   await joplin.settings.setValue('timeslip.logSortOrder', sortOrder);
+}
+
+export async function getEnforceSorting(): Promise<boolean> {
+  return await joplin.settings.value('timeslip.enforceLogSort');
+}
+
+export async function setEnforceSorting(enforce: boolean): Promise<void> {
+  await joplin.settings.setValue('timeslip.enforceLogSort', enforce);
 }
 
 let currentStartDate: string | null = null;

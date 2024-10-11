@@ -99,6 +99,10 @@ joplin.plugins.register({
         await taskManager.updateLogSortOrder();
         await taskManager.scanNoteAndUpdateTasks();
       }
+      if (event.keys.includes('timeslip.enforceLogSort')) {
+        await taskManager.updateEnforceSorting();
+        await taskManager.scanNoteAndUpdateTasks();
+      }
     });
 
     await joplin.views.panels.onMessage(panel, async (message) => {

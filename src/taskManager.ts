@@ -1,6 +1,6 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences, debounce } from './utils';
 import { NoteManager } from './noteManager';
-import { getSummarySortOrder, getLogSortOrder } from './settings';
+import { getSummarySortOrder, getLogSortOrder, getEnforceSorting } from './settings';
 
 interface FieldIndices {
   project: number;
@@ -42,6 +42,7 @@ export class TaskManager {
   private sortBy: 'duration' | 'endTime' | 'name' = 'duration';
   public debouncedScanAndUpdate: ReturnType<typeof debounce>;
   private logSortOrder: 'ascending' | 'descending' = 'ascending';
+  private enforceSorting: boolean = true;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -51,6 +52,7 @@ export class TaskManager {
     this.initializeSortOrder();
     this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), 4000);
     this.updateLogSortOrder();
+    this.updateEnforceSorting();
   }
 
   private getTaskKey(taskName: string, project: string): string {
@@ -182,8 +184,9 @@ export class TaskManager {
         const currentStartTime = startDateTime.getTime();
         
         // Check if the lines are sorted according to the log sort order
-        if ((this.logSortOrder === 'ascending' && currentStartTime < previousStartTime) ||
-            (this.logSortOrder === 'descending' && currentStartTime > previousStartTime)) {
+        if (this.enforceSorting &&
+            ((this.logSortOrder === 'ascending' && currentStartTime < previousStartTime) ||
+             (this.logSortOrder === 'descending' && currentStartTime > previousStartTime))) {
           isSorted = false;
         }
         previousStartTime = currentStartTime;
@@ -260,7 +263,7 @@ export class TaskManager {
     } = scanResult;
 
     // Update note content if necessary
-    if (!isSorted || durationChanged) {``
+    if (!isSorted || durationChanged) {
       const updatedContent = await this.getUpdatedNoteContent(sortableTasks, unknownTasks, lines, isSorted, durationChanged);
       if (updatedContent) {
         await this.noteManager.updateNote(updatedContent);
@@ -434,7 +437,14 @@ export class TaskManager {
       newEntry[this.fieldIndices.taskName] = taskName;
       newEntry[this.fieldIndices.startDate] = formatDate(startTime);
       newEntry[this.fieldIndices.startTime] = formatTime(startTime);
-      updatedBody += '\n' + newEntry.join(',') + '\n';
+      if (this.logSortOrder === 'ascending') {
+        updatedBody += '\n' + newEntry.join(',');
+
+      } else {
+        updatedBody = updatedBody.split('\n');
+        updatedBody.splice(1, 0, newEntry.join(','));
+        updatedBody = updatedBody.join('\n');
+      }
 
       await this.noteManager.updateNote(updatedBody);
       await this.scanNoteAndUpdateTasks();
@@ -571,5 +581,9 @@ export class TaskManager {
 
   async updateLogSortOrder() {
     this.logSortOrder = await getLogSortOrder();
+  }
+
+  async updateEnforceSorting() {
+    this.enforceSorting = await getEnforceSorting();
   }
 }
