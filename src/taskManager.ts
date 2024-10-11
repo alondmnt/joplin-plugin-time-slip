@@ -89,16 +89,13 @@ export class TaskManager {
   }
 
   async scanNoteAndUpdateTasks() {
-    console.log('Starting scanNoteAndUpdateTasks');
     if (!this.noteId) {
-      console.log('No note selected. Skipping scan.');
       this.updateCompletedTasks([]);
       return;
     }
 
+    let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     try {
-      let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
-      
       if (!note || note === null) {
         console.error('Note not found or is null');
         this.joplin.views.panels.postMessage(this.panel, { 
@@ -211,7 +208,7 @@ export class TaskManager {
       if (updatedContent !== note.body) {
         try {
           await this.noteManager.updateNote(updatedContent);
-          console.log('Note updated successfully');
+
         } catch (updateError) {
           console.error('Error updating note:', updateError);
           this.joplin.views.panels.postMessage(this.panel, { 
@@ -219,10 +216,7 @@ export class TaskManager {
             message: 'Failed to update the note. Please try again.'
           });
         }
-      } else {
-        console.log('No changes to update in the note');
       }
-      note = clearNoteReferences(note);
 
       // Update tasks
       this.tasks = openTasks;
@@ -245,6 +239,9 @@ export class TaskManager {
         name: 'error', 
         message: 'An error occurred while scanning the note. Note ID: ' + this.noteId
       });
+
+    } finally {
+      note = clearNoteReferences(note);
     }
   }
 
@@ -301,7 +298,6 @@ export class TaskManager {
   }
 
   async startTask(taskName: string, project: string) {
-    console.log(`Starting task: ${taskName} for project: ${project}`);
     if (!this.noteId) {
       this.joplin.views.panels.postMessage(this.panel, { 
         name: 'error', 
@@ -353,7 +349,6 @@ export class TaskManager {
   }
 
   async stopTask(taskName: string, project: string) {
-    console.log(`Stopping task: ${taskName} for project: ${project}`);
     if (!this.noteId) {
       console.error('No note selected. Cannot stop task.');
       return;
@@ -423,7 +418,6 @@ export class TaskManager {
   }
 
   async getInitialData() {
-    console.log('Getting initial data');
     return {
       runningTasks: this.tasks,
       completedTasks: this.completedTasks,
