@@ -101,6 +101,21 @@ joplin.plugins.register({
     });
     await joplin.views.menuItems.create('timeslip.sortTimeLog', 'timeslip.sortTimeLog', MenuItemLocation.Note);
 
+    await joplin.commands.register({
+      name: 'timeslip.copyToClipboard',
+      label: 'Copy Time Slip summary',
+      iconName: 'fas fa-clipboard',
+      execute: async () => {
+        if (noteId) {
+          // Request summary table from the panel
+          await joplin.views.panels.postMessage(panel, { name: 'requestSummaryTable' });
+        } else {
+          await joplin.views.dialogs.showMessageBox('Please select a time log note first.');
+        }
+      }
+    });
+    await joplin.views.menuItems.create('timeslip.copyToClipboard', 'timeslip.copyToClipboard', MenuItemLocation.Note);
+
     await joplin.settings.onChange(async (event) => {
       if (event.keys.includes('timeslip.logNoteTag')) {
         const newLogNoteTag = await joplin.settings.value('timeslip.logNoteTag');
@@ -204,6 +219,11 @@ joplin.plugins.register({
             message: 'Please select a note first.' 
           });
         }
+
+      } else if (message.name === 'summaryTable') {
+        // Copy the summary table to clipboard
+        await joplin.clipboard.writeText(message.content);
+        await joplin.views.dialogs.showMessageBox('Summary table has been copied to clipboard.');
       }
     });
   },

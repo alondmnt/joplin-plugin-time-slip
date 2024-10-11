@@ -272,9 +272,17 @@ webviewApi.onMessage(function(event) {
 
     // Trigger initial filter
     applyDateFilter(startDateInput, endDateInput);
+
   } else if (message.name === 'updateSortOrder') {
     currentSortBy = message.sortBy;
     updateCompletedTasksDisplay();
+
+  } else if (message.name === 'requestSummaryTable') {
+    const csvContent = completedTasksDiv.getAttribute('data-csv-content');
+    webviewApi.postMessage({
+      name: 'summaryTable',
+      content: csvContent
+    });
   }
 });
 
@@ -313,6 +321,7 @@ function updateCompletedTasksDisplay() {
   const aggregationLevelDiv = document.querySelector('.aggregation-level');
 
   let tasksHtml = '';
+  let csvContent = '';
 
   if (completedTasks.length > 0) {
     const filteredTasks = completedTasks.filter(task => 
@@ -358,6 +367,7 @@ function updateCompletedTasksDisplay() {
     }
 
     if (currentAggregationLevel === 1) {
+      csvContent = 'Task,Project,Duration,End Time\n';
       tasksHtml += `<tr>
         <th class="header-cell sortable" data-sort="name">${headerTask}</th>
         <th class="header-cell sortable" data-sort="name">${headerProject}</th>
@@ -371,12 +381,14 @@ function updateCompletedTasksDisplay() {
         <th class="header-cell">Action</th>
       </tr>`;
     } else if (currentAggregationLevel === 2) {
+      csvContent = 'Project,Duration,End Time\n';
       tasksHtml += `<tr>
         <th class="header-cell sortable" data-sort="name">${headerProject}</th>
         <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
         <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>
       </tr>`;
     } else {
+      csvContent = 'Note,Duration,End Time\n';
       tasksHtml += `<tr>
         <th class="header-cell">Note</th>
         <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
@@ -387,8 +399,10 @@ function updateCompletedTasksDisplay() {
     aggregatedTasks.forEach(({ name, duration, originalTask, originalProject, endTime }) => {
       const formattedDuration = formatDuration(Math.floor(duration / 1000));
       const formattedEndTime = formatDateTime(new Date(endTime));
+      const csvFormattedEndTime = formattedEndTime.replace('<br>', ' ');
       
       if (currentAggregationLevel === 1) {
+        csvContent += `${originalTask},${originalProject},${formattedDuration},${csvFormattedEndTime}\n`;
         tasksHtml += `<tr>
           <td>${originalTask}</td>
           <td>${originalProject}</td>
@@ -402,12 +416,14 @@ function updateCompletedTasksDisplay() {
           <td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
         </tr>`;
       } else if (currentAggregationLevel === 2) {
+        csvContent += `${name},${formattedDuration},${csvFormattedEndTime}\n`;
         tasksHtml += `<tr>
           <td>${name}</td>
           <td style="word-wrap: break-word">${formattedDuration}</td>
           <td style="word-wrap: break-word">${formattedEndTime}</td>
         </tr>`;
       } else {
+        csvContent += `${selectedNoteName || 'No note selected'},${formattedDuration},${csvFormattedEndTime}\n`;
         tasksHtml += `<tr>
           <td>${selectedNoteName || 'No note selected'}</td>
           <td style="word-wrap: break-word">${formattedDuration}</td>
@@ -421,11 +437,12 @@ function updateCompletedTasksDisplay() {
   } else {
     tasksHtml += '<p>No completed tasks</p>';
     aggregationLevelDiv.classList.add('hidden');
+    csvContent = 'No completed tasks\n';
   }
   
   completedTasksDiv.innerHTML = tasksHtml;
-
-  // Remove the individual event listeners and use event delegation instead
+  // Store the CSV content in a data attribute of the completedTasksDiv
+  completedTasksDiv.setAttribute('data-csv-content', csvContent);
 }
 
 function changeSortOrder(sortBy) {
