@@ -691,7 +691,7 @@ function updateAutocompleteLists() {
 }
 
 function formatDateTime(date) {
-  return `${date.toLocaleDateString()}<br>${date.toLocaleTimeString()}`;
+  return `${date.toLocaleDateString('en-CA')}<br>${date.toLocaleTimeString('en-CA', { hour12: false })}`;
 }
 
 document.getElementById('openNoteButton').addEventListener('click', openSelectedNote);
