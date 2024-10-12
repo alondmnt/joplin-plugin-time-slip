@@ -367,7 +367,7 @@ function updateCompletedTasksDisplay() {
     }
 
     if (currentAggregationLevel === 1) {
-      csvContent = 'Task,Project,Duration,End Time\n';
+      csvContent = 'Task,Project,Duration,End date,End time\n';
       tasksHtml += `<tr>
         <th class="header-cell sortable" data-sort="name">${headerTask}</th>
         <th class="header-cell sortable" data-sort="name">${headerProject}</th>
@@ -381,14 +381,14 @@ function updateCompletedTasksDisplay() {
         <th class="header-cell">Action</th>
       </tr>`;
     } else if (currentAggregationLevel === 2) {
-      csvContent = 'Project,Duration,End Time\n';
+      csvContent = 'Project,Duration,End date,End time\n';
       tasksHtml += `<tr>
         <th class="header-cell sortable" data-sort="name">${headerProject}</th>
         <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
         <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>
       </tr>`;
     } else {
-      csvContent = 'Note,Duration,End Time\n';
+      csvContent = 'Note,Duration,End date,End time\n';
       tasksHtml += `<tr>
         <th class="header-cell">Note</th>
         <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
@@ -399,7 +399,7 @@ function updateCompletedTasksDisplay() {
     aggregatedTasks.forEach(({ name, duration, originalTask, originalProject, endTime }) => {
       const formattedDuration = formatDuration(Math.floor(duration / 1000));
       const formattedEndTime = formatDateTime(new Date(endTime));
-      const csvFormattedEndTime = formattedEndTime.replace('<br>', ' ');
+      const csvFormattedEndTime = formattedEndTime.replace('<br>', ',');
       
       if (currentAggregationLevel === 1) {
         csvContent += `${originalTask},${originalProject},${formattedDuration},${csvFormattedEndTime}\n`;
