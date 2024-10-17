@@ -3,7 +3,6 @@ import { MenuItemLocation } from 'api/types';
 import { TaskManager } from './taskManager';
 import { NoteManager } from './noteManager';
 import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel, getSummarySortOrder } from './settings';
-import { debounce } from './utils';
 
 joplin.plugins.register({
   onStart: async function() {
