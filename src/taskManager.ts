@@ -352,14 +352,18 @@ export class TaskManager {
   }
 
   async getLogNotes() {
-    const tags = await this.joplin.data.get(['tags'], {
-      fields: ['id', 'title'],
+    // @todo: edge case exists where there may be more than 100 identical tags!
+    const tags = await this.joplin.data.get(['search'], {
+      query: this.logNoteTag,
+      fields: 'id,title',
+      type: 'tag',
     });
-    const timeTags = tags.items.filter(tag => tag.title === this.logNoteTag);
+    const timeTags = tags.items;
 
     if (timeTags.length > 0) {
       this.logNotes = [];
       for (const timeTag of timeTags) {
+        // @todo: there may also be more than 100 log notes
         const notes = await this.joplin.data.get(
           ['tags', timeTag.id, 'notes'],
           {
