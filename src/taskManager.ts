@@ -363,14 +363,17 @@ export class TaskManager {
     if (timeTags.length > 0) {
       this.logNotes = [];
       for (const timeTag of timeTags) {
-        // @todo: there may also be more than 100 log notes
-        const notes = await this.joplin.data.get(
-          ['tags', timeTag.id, 'notes'],
-          {
-            fields: ['id', 'title'],
-          }
-        );
-        this.logNotes = this.logNotes.concat(notes.items);
+        let hasMore = true;
+        while (hasMore) {
+          const notes = await this.joplin.data.get(
+            ['tags', timeTag.id, 'notes'],
+            {
+              fields: ['id', 'title'],
+            }
+          );
+          this.logNotes = this.logNotes.concat(notes.items);
+          hasMore = notes.has_more;
+        }
       }
       this.updateLogNotes();
 
