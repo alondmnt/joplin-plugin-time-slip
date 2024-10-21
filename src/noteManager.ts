@@ -52,4 +52,37 @@ export class NoteManager {
   handleNoteSelectionChange = async () => {
     await this.taskManager.getLogNotes();
   }
+
+  async exportNote(): Promise<string> {
+    try {
+      const note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
+      const content = note.body;
+      const lines = content.split('\n');
+      
+      if (lines.length < 2) {
+        return 'The note is empty or contains only a header.';
+      }
+
+      const header = lines[0].split(',');
+      const tableHeader = `| ${header.join(' | ')} |\n| ${header.map(() => '---').join(' | ')} |\n`;
+      
+      let tableContent = tableHeader;
+      
+      for (let i = 1; i < lines.length; i++) {
+        const fields = lines[i].split(',').map(field => field.trim());
+        if (fields.length === header.length) {
+          tableContent += `| ${fields.join(' | ')} |\n`;
+        }
+      }
+      
+      return tableContent;
+    } catch (error) {
+      console.error('Failed to export note:', error);
+      this.joplin.views.panels.postMessage(this.panel, { 
+        name: 'error', 
+        message: 'Failed to export note.' 
+      });
+      return '';
+    }
+  }
 }

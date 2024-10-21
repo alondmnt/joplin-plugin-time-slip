@@ -101,6 +101,29 @@ joplin.plugins.register({
     await joplin.views.menuItems.create('timeslip.sortTimeLog', 'timeslip.sortTimeLog', MenuItemLocation.Note);
 
     await joplin.commands.register({
+      name: 'timeslip.insertRenderedLog',
+      label: 'Insert rendered Time Slip log',
+      iconName: 'fas fa-table',
+      execute: async () => {
+        if (noteId) {
+          const exportedTable = await noteManager.exportNote();
+          if (exportedTable) {
+            await joplin.commands.execute('editor.focus');
+            await joplin.commands.execute('editor.execCommand', {
+              name: 'replaceSelection',
+              args: [exportedTable],
+            });
+          } else {
+            await joplin.views.dialogs.showMessageBox('Failed to render time slip.');
+          }
+        } else {
+          await joplin.views.dialogs.showMessageBox('Please select a time log note first.');
+        }
+      }
+    });
+    await joplin.views.menuItems.create('timeslip.insertRenderedLog', 'timeslip.insertRenderedLog', MenuItemLocation.Note);
+
+    await joplin.commands.register({
       name: 'timeslip.copyToClipboard',
       label: 'Copy Time Slip summary',
       iconName: 'fas fa-clipboard',
