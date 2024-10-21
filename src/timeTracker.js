@@ -565,7 +565,13 @@ function createAutocomplete(input, getItems, onSelect) {
         break;
       case 'Enter':
         e.preventDefault();
-        selectCurrentItem();
+        if (selectedIndex === -1) {
+          // No item selected, use the current input value
+          onSelect(input.value);
+          hideAutocompleteList();
+        } else {
+          selectCurrentItem();
+        }
         break;
       case 'Escape':
         hideAutocompleteList();
