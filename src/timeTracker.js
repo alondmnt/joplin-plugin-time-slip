@@ -208,6 +208,20 @@ function openSelectedNote() {
   }
 }
 
+function convertCsvToMarkdown(csv) {
+  const rows = csv.trim().split('\n').map(row => row.split(','));
+  const headers = rows[0];
+  const body = rows.slice(1);
+
+  let markdown = '| ' + headers.join(' | ') + ' |\n';
+  markdown += '| ' + headers.map(() => '---').join(' | ') + ' |\n';
+  body.forEach(row => {
+    markdown += '| ' + row.join(' | ') + ' |\n';
+  });
+
+  return markdown;
+}
+
 webviewApi.onMessage(function(event) {
   const message = event.message;
   if (message.name === 'updateRunningTasks') {
@@ -277,11 +291,19 @@ webviewApi.onMessage(function(event) {
     currentSortBy = message.sortBy;
     updateCompletedTasksDisplay();
 
-  } else if (message.name === 'requestSummaryTable') {
+  } else if (message.name === 'requestSummaryCSV') {
     const csvContent = completedTasksDiv.getAttribute('data-csv-content');
     webviewApi.postMessage({
-      name: 'summaryTable',
+      name: 'summaryCSV',
       content: csvContent
+    });
+
+  } else if (message.name === 'requestSummaryMarkdown') {
+    const csvContent = completedTasksDiv.getAttribute('data-csv-content');
+    const markdownContent = convertCsvToMarkdown(csvContent);
+    webviewApi.postMessage({
+      name: 'summaryMarkdown',
+      content: markdownContent
     });
   }
 });

@@ -101,8 +101,8 @@ joplin.plugins.register({
     await joplin.views.menuItems.create('timeslip.sortTimeLog', 'timeslip.sortTimeLog', MenuItemLocation.Note);
 
     await joplin.commands.register({
-      name: 'timeslip.insertRenderedLog',
-      label: 'Insert rendered Time Slip log',
+      name: 'timeslip.insertLogMarkdown',
+      label: 'Insert Time Slip markdown log',
       iconName: 'fas fa-table',
       execute: async () => {
         if (noteId) {
@@ -121,7 +121,22 @@ joplin.plugins.register({
         }
       }
     });
-    await joplin.views.menuItems.create('timeslip.insertRenderedLog', 'timeslip.insertRenderedLog', MenuItemLocation.Note);
+    await joplin.views.menuItems.create('timeslip.insertLogMarkdown', 'timeslip.insertLogMarkdown', MenuItemLocation.Note);
+
+    await joplin.commands.register({
+      name: 'timeslip.insertSummaryMarkdown',
+      label: 'Insert Time Slip markdown summary',
+      iconName: 'fas fa-markdown',
+      execute: async () => {
+        if (noteId) {
+          // Request markdown summary table from the panel
+          await joplin.views.panels.postMessage(panel, { name: 'requestSummaryMarkdown' });
+        } else {
+          await joplin.views.dialogs.showMessageBox('Please select a time log note first.');
+        }
+      }
+    });
+    await joplin.views.menuItems.create('timeslip.insertSummaryMarkdown', 'timeslip.insertSummaryMarkdown', MenuItemLocation.Note);
 
     await joplin.commands.register({
       name: 'timeslip.copyToClipboard',
@@ -130,7 +145,7 @@ joplin.plugins.register({
       execute: async () => {
         if (noteId) {
           // Request summary table from the panel
-          await joplin.views.panels.postMessage(panel, { name: 'requestSummaryTable' });
+          await joplin.views.panels.postMessage(panel, { name: 'requestSummaryCSV' });
         } else {
           await joplin.views.dialogs.showMessageBox('Please select a time log note first.');
         }
@@ -242,10 +257,18 @@ joplin.plugins.register({
           });
         }
 
-      } else if (message.name === 'summaryTable') {
+      } else if (message.name === 'summaryCSV') {
         // Copy the summary table to clipboard
         await joplin.clipboard.writeText(message.content);
         await joplin.views.dialogs.showMessageBox('Summary table has been copied to clipboard.');
+
+      } else if (message.name === 'summaryMarkdown') {
+        // Insert the markdown summary table at the current cursor position
+        await joplin.commands.execute('editor.focus');
+        await joplin.commands.execute('editor.execCommand', {
+          name: 'replaceSelection',
+          args: [message.content],
+        });
       }
     });
   },
