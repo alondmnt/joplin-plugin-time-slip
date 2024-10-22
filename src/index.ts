@@ -98,7 +98,7 @@ joplin.plugins.register({
         }
       }
     });
-    await joplin.views.menuItems.create('timeslip.sortTimeLog', 'timeslip.sortTimeLog', MenuItemLocation.Note);
+    await joplin.views.menuItems.create('timeslip.sortTimeLog', 'timeslip.sortTimeLog', MenuItemLocation.Tools);
 
     await joplin.commands.register({
       name: 'timeslip.insertLogMarkdown',
@@ -139,8 +139,8 @@ joplin.plugins.register({
     await joplin.views.menuItems.create('timeslip.insertSummaryMarkdown', 'timeslip.insertSummaryMarkdown', MenuItemLocation.Note);
 
     await joplin.commands.register({
-      name: 'timeslip.copyToClipboard',
-      label: 'Copy Time Slip summary',
+      name: 'timeslip.copySummaryCSV',
+      label: 'Copy Time Slip CSV summary',
       iconName: 'fas fa-clipboard',
       execute: async () => {
         if (noteId) {
@@ -151,7 +151,7 @@ joplin.plugins.register({
         }
       }
     });
-    await joplin.views.menuItems.create('timeslip.copyToClipboard', 'timeslip.copyToClipboard', MenuItemLocation.Note);
+    await joplin.views.menuItems.create('timeslip.copySummaryCSV', 'timeslip.copySummaryCSV', MenuItemLocation.Tools);
 
     await joplin.settings.onChange(async (event) => {
       if (event.keys.includes('timeslip.logNoteTag')) {
