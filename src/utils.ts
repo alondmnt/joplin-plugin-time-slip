@@ -21,17 +21,6 @@ export function formatDuration(durationMs: number): string {
   return `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
 }
 
-export function debounce(func: Function, wait: number) {
-  let timeout: NodeJS.Timeout | null = null;
-  return function(...args: any[]) {
-    const context = this;
-    if (timeout) clearTimeout(timeout);
-    timeout = setTimeout(() => {
-      func.apply(context, args);
-    }, wait);
-  };
-}
-
 export function clearNoteReferences(note: any): null {
   if (!note) { return null; }
 

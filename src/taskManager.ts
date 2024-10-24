@@ -1,6 +1,7 @@
-import { formatDuration, formatDate, formatTime, clearNoteReferences, debounce } from './utils';
+import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
 import { getSummarySortOrder, getLogSortOrder, getEnforceSorting } from './settings';
+import debounce = require('lodash.debounce');
 
 interface FieldIndices {
   project: number;
