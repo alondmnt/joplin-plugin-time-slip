@@ -22,6 +22,7 @@ Time Slip is a [Joplin](https://joplinapp.org/) plugin that allows you to track 
     - Edit the note to change any of the fields.
     - Select the default order of the log entries in the settings. You may also activate auto-sorting, so that edited entries are automatically resorted (or resort using `Tools -> Sort Time Slip log`).
     - Insert the table into a note (or replace selection) using `Note -> Insert Time Slip markdown log`.
+    - Import a markdown table by selecting the table and clicking `Tools -> Convert selected table to CSV`.
 6. The panel displays a summary of completed timers.
     - Only entries in the selected date range are displayed.
     - Change the aggregation level by selecting task, project, or note.
@@ -29,3 +30,5 @@ Time Slip is a [Joplin](https://joplinapp.org/) plugin that allows you to track 
     - Further filter the table using the search bar.
     - Insert the table into a note (or replace selection) using `Note -> Insert Time Slip markdown summary`.
     - Copy the table to clipboard using `Tools -> Copy Time Slip CSV summary`.
+
+<img src="img/time-slip-markdown.gif" width="80%" title="Export / import markdown table">
