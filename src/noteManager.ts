@@ -70,9 +70,11 @@ export class NoteManager {
       
       for (let i = 1; i < lines.length; i++) {
         const fields = lines[i].split(',').map(field => field.trim());
-        if (fields.length === header.length) {
-          tableContent += `| ${fields.join(' | ')} |\n`;
+        // Add empty fields if there are missing ones
+        while (fields.length < header.length) {
+          fields.push('');
         }
+        tableContent += `| ${fields.join(' | ')} |\n`;
       }
       
       return tableContent;
