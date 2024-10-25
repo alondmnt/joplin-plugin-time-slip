@@ -86,3 +86,23 @@ export class NoteManager {
     }
   }
 }
+
+export function convertMarkdownTableToCSV(markdownTable: string): string | null {
+  const lines = markdownTable.trim().split('\n');
+  if (lines.length < 3) return null; // A valid table should have at least 3 lines
+
+  // Remove the separator line (second line of the markdown table)
+  lines.splice(1, 1);
+
+  const csvLines = lines.map(line => {
+    // Remove leading and trailing pipes, then split by pipes
+    const cells = line.replace(/^\||\|$/g, '').split('|');
+    // Trim each cell and wrap in quotes if it contains a comma
+    return cells.map(cell => {
+      const trimmed = cell.trim();
+      return trimmed.includes(',') ? `"${trimmed}"` : trimmed;
+    }).join(',');
+  });
+
+  return csvLines.join('\n');
+}

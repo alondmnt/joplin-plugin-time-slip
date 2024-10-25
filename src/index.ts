@@ -1,7 +1,7 @@
 import joplin from 'api';
 import { MenuItemLocation } from 'api/types';
 import { TaskManager } from './taskManager';
-import { NoteManager } from './noteManager';
+import { NoteManager, convertMarkdownTableToCSV } from './noteManager';
 import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel, getSummarySortOrder } from './settings';
 
 joplin.plugins.register({
@@ -152,6 +152,32 @@ joplin.plugins.register({
       }
     });
     await joplin.views.menuItems.create('timeslip.copySummaryCSV', 'timeslip.copySummaryCSV', MenuItemLocation.Tools);
+
+    await joplin.commands.register({
+      name: 'timeslip.convertSelectionToCSV',
+      label: 'Convert selected table to CSV',
+      iconName: 'fas fa-table',
+      execute: async () => {
+        const selectedText = await joplin.commands.execute('selectedText');
+        if (!selectedText) {
+          await joplin.views.dialogs.showMessageBox('Please select a markdown table first.');
+          return;
+        }
+
+        const csvContent = convertMarkdownTableToCSV(selectedText);
+        if (csvContent) {
+          await joplin.commands.execute('editor.focus');
+          await joplin.commands.execute('editor.execCommand', {
+            name: 'replaceSelection',
+            args: [csvContent],
+          });
+
+        } else {
+          await joplin.views.dialogs.showMessageBox('Failed to convert the selected text to CSV. Make sure it\'s a valid markdown table.');
+        }
+      }
+    });
+    await joplin.views.menuItems.create('timeslip.convertSelectionToCSV', 'timeslip.convertSelectionToCSV', MenuItemLocation.Tools);
 
     await joplin.settings.onChange(async (event) => {
       if (event.keys.includes('timeslip.logNoteTag')) {
