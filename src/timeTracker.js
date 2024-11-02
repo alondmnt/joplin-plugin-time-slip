@@ -620,7 +620,9 @@ function createAutocomplete(input, getItems, onSelect) {
       return;
     }
 
-    const matches = items.filter(item => item.toLowerCase().includes(value));
+    const matches = items
+      .filter(item => item.toLowerCase().includes(value))
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
     if (matches.length === 0) {
       hideAutocompleteList();
