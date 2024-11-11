@@ -2,7 +2,7 @@
     box-sizing: border-box;
 }
 
-#taskName, #projectName, #startButton, .running-task, .stopButton, .startButton, #noteSelector, .date-range input[type="date"],
+#taskName, #projectName, #startButton, #openNoteButton, .running-task, .stopButton, .startButton, #noteSelector, .date-range input[type="date"],
 .autocomplete-list, #completedTasks table, #completedTasks th, #completedTasks td, #taskFilter {
     border-color: rgb(118, 118, 118);
     font-size: var(--joplin-font-size);
