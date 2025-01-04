@@ -32,3 +32,17 @@ Time Slip is a [Joplin](https://joplinapp.org/) plugin that allows you to track 
     - Copy the table to clipboard using `Tools -> Copy Time Slip CSV summary`.
 
 <img src="img/time-slip-markdown.gif" width="80%" title="Export / import markdown table">
+
+## Visualisations
+
+Use the `scripts/summarise_time_slips.py` script to generate visualisations from all your time slip logs, similar to the ones below (using [joppy](https://github.com/marph91/joppy), [wordcloud](https://github.com/amueller/word_cloud), [squarify](https://github.com/laserson/squarify)). For each time slip, one image will be generated for tasks in your preferred style (`--wordcloud` / `--treemap`), and one for projects.
+
+Example:
+
+```bash
+python3 scripts/summarise_time_slips.py --wordcloud --treemap <joplin_webclipper_token> <output_dir>
+```
+
+<img src="img/script-wordcloud.png" width="80%" title="Word cloud">
+
+<img src="img/script-treemap.png" width="80%" title="Treemap">
