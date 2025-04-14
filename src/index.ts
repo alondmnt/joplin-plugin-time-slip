@@ -268,6 +268,11 @@ joplin.plugins.register({
 
       } else if (message.name === 'openNote') {
         if (message.noteId) {
+          try {
+            await joplin.commands.execute('dismissPluginPanels');
+          } catch {
+            // Ignore errors (not on mobile, or old version)
+          }
           await joplin.commands.execute('openNote', message.noteId);
         }
 
