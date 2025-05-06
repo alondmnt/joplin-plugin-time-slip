@@ -207,7 +207,6 @@ joplin.plugins.register({
         if (noteId) {
           await taskManager.setDateRange(message.startDate, message.endDate);
           setCurrentDateRange(message.startDate, message.endDate);
-          await taskManager.scanNoteAndUpdateTasks();
           // Save the selected note ID as the default
           await setDefaultNoteId(noteId);
         } else {
@@ -248,7 +247,6 @@ joplin.plugins.register({
         if (noteId) {
           await taskManager.setDateRange(message.startDate, message.endDate);
           setCurrentDateRange(message.startDate, message.endDate);
-          await taskManager.scanNoteAndUpdateTasks();
         } else {
           await joplin.views.panels.postMessage(panel, { 
             name: 'error', 
