@@ -369,6 +369,9 @@ function updateCompletedTasksDisplay() {
       }
     });
     
+    // Calculate total duration for percentage calculations
+    const totalDuration = aggregatedTasks.reduce((sum, task) => sum + task.duration, 0);
+    
     const timeTrackerWidth = document.getElementById('timeTracker').offsetWidth;
     const showBothColumns = timeTrackerWidth > 340;  // in pixels
 
@@ -389,31 +392,35 @@ function updateCompletedTasksDisplay() {
     }
 
     if (currentAggregationLevel === 1) {
-      csvContent = 'Task,Project,Duration,End date,End time\n';
+      csvContent = 'Task,Project,Duration,%,End date,End time\n';
       tasksHtml += `<tr>
         <th class="header-cell sortable" data-sort="name">${headerTask}</th>
         <th class="header-cell sortable" data-sort="name">${headerProject}</th>
         ${showBothColumns ? 
           `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
+           <th class="header-cell">%</th>
            <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>` :
           `<th class="header-cell sortable" data-sort="${currentSortBy === 'endTime' ? 'endTime' : 'duration'}">
              ${currentSortBy === 'endTime' ? headerTime : headerDuration}
-           </th>`
+           </th>
+           <th class="header-cell">%</th>`
         }
         <th class="header-cell">Action</th>
       </tr>`;
     } else if (currentAggregationLevel === 2) {
-      csvContent = 'Project,Duration,End date,End time\n';
+      csvContent = 'Project,Duration,%,End date,End time\n';
       tasksHtml += `<tr>
         <th class="header-cell sortable" data-sort="name">${headerProject}</th>
         <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
+        <th class="header-cell">%</th>
         <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>
       </tr>`;
     } else {
-      csvContent = 'Note,Duration,End date,End time\n';
+      csvContent = 'Note,Duration,%,End date,End time\n';
       tasksHtml += `<tr>
         <th class="header-cell">Note</th>
         <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
+        <th class="header-cell">%</th>
         <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>
       </tr>`;
     }
@@ -422,33 +429,38 @@ function updateCompletedTasksDisplay() {
       const formattedDuration = formatDuration(Math.floor(duration / 1000));
       const formattedEndTime = formatDateTime(new Date(endTime));
       const csvFormattedEndTime = formattedEndTime.replace('<br>', ',');
+      const percentage = totalDuration > 0 ? ((duration / totalDuration) * 100).toFixed(1) : '0.0';
       
       if (currentAggregationLevel === 1) {
-        csvContent += `${originalTask},${originalProject},${formattedDuration},${csvFormattedEndTime}\n`;
+        csvContent += `${originalTask},${originalProject},${formattedDuration},${percentage}%,${csvFormattedEndTime}\n`;
         tasksHtml += `<tr>
           <td>${originalTask}</td>
           <td>${originalProject}</td>
           ${showBothColumns ?
             `<td style="word-wrap: break-word">${formattedDuration}</td>
+             <td style="word-wrap: break-word">${percentage}%</td>
              <td style="word-wrap: break-word">${formattedEndTime}</td>` :
             `<td style="word-wrap: break-word">
                ${currentSortBy === 'endTime' ? formattedEndTime : formattedDuration}
-             </td>`
+             </td>
+             <td style="word-wrap: break-word">${percentage}%</td>`
           }
           <td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
         </tr>`;
       } else if (currentAggregationLevel === 2) {
-        csvContent += `${name},${formattedDuration},${csvFormattedEndTime}\n`;
+        csvContent += `${name},${formattedDuration},${percentage}%,${csvFormattedEndTime}\n`;
         tasksHtml += `<tr>
           <td>${name}</td>
           <td style="word-wrap: break-word">${formattedDuration}</td>
+          <td style="word-wrap: break-word">${percentage}%</td>
           <td style="word-wrap: break-word">${formattedEndTime}</td>
         </tr>`;
       } else {
-        csvContent += `${selectedNoteName || 'No note selected'},${formattedDuration},${csvFormattedEndTime}\n`;
+        csvContent += `${selectedNoteName || 'No note selected'},${formattedDuration},${percentage}%,${csvFormattedEndTime}\n`;
         tasksHtml += `<tr>
           <td>${selectedNoteName || 'No note selected'}</td>
           <td style="word-wrap: break-word">${formattedDuration}</td>
+          <td style="word-wrap: break-word">${percentage}%</td>
           <td style="word-wrap: break-word">${formattedEndTime}</td>
         </tr>`;
       }
