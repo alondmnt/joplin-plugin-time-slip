@@ -420,7 +420,7 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
   }
 
   if (aggregationLevel === 1) {
-    headerHtml += `<th class="header-cell">Action</th>`;
+    headerHtml += `<th class="header-cell"></th>`;
   }
   
   headerHtml += '</tr>';
@@ -480,7 +480,7 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
   }
 
   if (aggregationLevel === 1) {
-    rowHtml += `<td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>`;
+    rowHtml += `<td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">▶</button></td>`;
   }
   
   rowHtml += '</tr>';
