@@ -393,8 +393,21 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
     }
   } else {
     // Narrow mode - show only one data column + percentage
-    const showEndTimeInNarrowMode = currentSortBy === 'endTime' && showEndTimeColumn;
-    const showDurationInNarrowMode = currentSortBy !== 'endTime' && showDurationColumn;
+    // Priority: show preferred column based on sort, otherwise fallback to available column
+    let showEndTimeInNarrowMode = false;
+    let showDurationInNarrowMode = false;
+    
+    if (currentSortBy === 'endTime' && showEndTimeColumn) {
+      showEndTimeInNarrowMode = true;
+    } else if (currentSortBy !== 'endTime' && showDurationColumn) {
+      showDurationInNarrowMode = true;
+    } else if (showEndTimeColumn) {
+      // Fallback: show endTime if duration is not available
+      showEndTimeInNarrowMode = true;
+    } else if (showDurationColumn) {
+      // Fallback: show duration if endTime is not available
+      showDurationInNarrowMode = true;
+    }
     
     if (showEndTimeInNarrowMode || showDurationInNarrowMode) {
       headerHtml += `<th class="header-cell sortable" data-sort="${showEndTimeInNarrowMode ? 'endTime' : 'duration'}">`;
@@ -440,8 +453,21 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
     }
   } else {
     // Narrow mode - show only one data column + percentage
-    const showEndTimeInNarrowMode = currentSortBy === 'endTime' && showEndTimeColumn;
-    const showDurationInNarrowMode = currentSortBy !== 'endTime' && showDurationColumn;
+    // Priority: show preferred column based on sort, otherwise fallback to available column
+    let showEndTimeInNarrowMode = false;
+    let showDurationInNarrowMode = false;
+    
+    if (currentSortBy === 'endTime' && showEndTimeColumn) {
+      showEndTimeInNarrowMode = true;
+    } else if (currentSortBy !== 'endTime' && showDurationColumn) {
+      showDurationInNarrowMode = true;
+    } else if (showEndTimeColumn) {
+      // Fallback: show endTime if duration is not available
+      showEndTimeInNarrowMode = true;
+    } else if (showDurationColumn) {
+      // Fallback: show duration if endTime is not available
+      showDurationInNarrowMode = true;
+    }
     
     if (showEndTimeInNarrowMode || showDurationInNarrowMode) {
       rowHtml += `<td style="word-wrap: break-word">`;
