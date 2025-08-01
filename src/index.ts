@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { MenuItemLocation } from 'api/types';
+import { MenuItemLocation, ContentScriptType } from 'api/types';
 import { TaskManager } from './taskManager';
 import { NoteManager, convertMarkdownTableToCSV } from './noteManager';
 import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel, getSummarySortOrder } from './settings';
@@ -9,6 +9,13 @@ joplin.plugins.register({
     await registerSettings();
     const logNoteTag = await getLogNoteTag();
     const defaultNoteId = await getDefaultNoteId();
+
+    // Register CodeMirror content script for cursor preservation
+    await joplin.contentScripts.register(
+      ContentScriptType.CodeMirrorPlugin,
+      'timeSlip_cursorPreservation',
+      './contentScripts/cursorPreservation.js'
+    );
 
     const panel = await joplin.views.panels.create('timeSlipPanel');
 
@@ -51,8 +58,8 @@ joplin.plugins.register({
       </div>
     `);
 
-    await joplin.views.panels.addScript(panel, 'timeTracker.css');
-    await joplin.views.panels.addScript(panel, 'timeTracker.js');
+    await joplin.views.panels.addScript(panel, 'contentScripts/timeTracker.css');
+    await joplin.views.panels.addScript(panel, 'contentScripts/timeTracker.js');
 
     let noteId = defaultNoteId;
     const noteManager = new NoteManager(joplin, noteId, panel);

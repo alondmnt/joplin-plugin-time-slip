@@ -28,7 +28,7 @@ export class NoteManager {
 
       currentNote = await this.joplin.workspace.selectedNote();
       if (currentNote && currentNote.id === this.noteId) {
-        await this.joplin.commands.execute('editor.setText', content);
+        await this.updateEditorWithCursorPreservation(content);
       }
     } catch (error) {
       console.error('Failed to update note:', error);
@@ -38,6 +38,34 @@ export class NoteManager {
       });
     } finally {
       currentNote = clearNoteReferences(currentNote);
+    }
+  }
+
+  private async updateEditorWithCursorPreservation(content: string) {
+    try {
+      // Try to get current cursor position using our content script
+      const cursorPos = await this.joplin.commands.execute('editor.execCommand', {
+        name: 'timeSlip__getCursorPosition'
+      });
+      
+      // Try to update content with cursor preservation using our content script
+      const result = await this.joplin.commands.execute('editor.execCommand', {
+        name: 'timeSlip__updateContentWithCursor',
+        args: [content, cursorPos]
+      });
+      
+      if (result && result.success) {
+        return; // Success - content updated with cursor preservation
+      }
+    } catch (error) {
+      // CM6 content script not available, fall back to basic setText
+    }
+    
+    // Fallback: Basic setText without cursor preservation
+    try {
+      await this.joplin.commands.execute('editor.setText', content);
+    } catch (error) {
+      console.error('[TIME-SLIP] Editor update failed:', error);
     }
   }
 

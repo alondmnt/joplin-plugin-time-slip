@@ -15,6 +15,7 @@
     "publish"
   ],
   "devDependencies": {
+    "@codemirror/state": "^6.5.2",
     "@joplin/lib": "~2.9",
     "@types/lodash.debounce": "^4.0.9",
     "@types/node": "^18.7.13",
