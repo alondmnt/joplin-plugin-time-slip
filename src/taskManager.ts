@@ -169,7 +169,7 @@ export class TaskManager {
 
     if (startDate) startDate.setHours(0, 0, 0, 0);
     if (endDate) endDate.setHours(23, 59, 59, 999);
-
+    
     // Skip the header line
     for (let i = 1; i < lines.length; i++) {
       const fields = lines[i].split(',').map(field => field.trim());
@@ -399,6 +399,7 @@ export class TaskManager {
   }
 
   private updateCompletedTasks(completedTasks: Array<{ taskName: string; project: string; duration: number; endTime: number }>) {
+    this.completedTasks = completedTasks;
     this.joplin.views.panels.postMessage(this.panel, { 
       name: 'updateCompletedTasks', 
       tasks: completedTasks
@@ -538,13 +539,16 @@ export class TaskManager {
       await this.scanNoteAndUpdateTasks();
     }
     
+    // Get the actual default note ID from settings, not the current noteId
+    const defaultNoteIdFromSettings = await this.joplin.settings.value('timeslip.defaultNoteId');
+    
     return {
       runningTasks: this.tasks,
       completedTasks: this.completedTasks,
       uniqueTasks: this.uniqueTasks,
       uniqueProjects: this.uniqueProjects,
       logNotes: await this.getLogNotes(),
-      defaultNoteId: this.noteId,
+      defaultNoteId: defaultNoteIdFromSettings,
       sortBy: this.sortBy,
       showDurationColumn: this.showDurationColumn,
       showPercentageColumn: this.showPercentageColumn,

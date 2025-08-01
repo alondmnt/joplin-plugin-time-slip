@@ -62,6 +62,7 @@ joplin.plugins.register({
     await joplin.views.panels.addScript(panel, 'contentScripts/timeTracker.js');
 
     let noteId = defaultNoteId;
+    let isInitializing = false; // Flag to prevent unwanted changeNote during init
     const noteManager = new NoteManager(joplin, noteId, panel);
     const taskManager = new TaskManager(joplin, panel, noteId, noteManager);
     noteManager.setTaskManager(taskManager);
@@ -76,7 +77,7 @@ joplin.plugins.register({
     await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
     await joplin.workspace.onNoteSelectionChange(noteManager.handleNoteSelectionChange);
 
-    await joplin.commands.register({
+        await joplin.commands.register({
       name: 'timeslip.togglePanel',
       label: 'Toggle Time Slip panel',
       iconName: 'fas fa-stopwatch',
@@ -213,6 +214,9 @@ joplin.plugins.register({
 
     await joplin.views.panels.onMessage(panel, async (message) => {
       if (message.name === 'changeNote') {
+        if (isInitializing) {
+          return; // Ignore changeNote events during initialization
+        }
         noteId = message.noteId;
         await noteManager.setNoteId(noteId);
         await taskManager.setNoteId(noteId);
@@ -245,21 +249,43 @@ joplin.plugins.register({
         }
 
       } else if (message.name === 'requestInitialData') {
-        const currentDateRange = await getCurrentDateRange();
-        const aggregationLevel = await getAggregationLevel();
+        // Clear any previous initialization state immediately
+        isInitializing = false;
         
-        // Set the date range before getting initial data to ensure proper filtering
-        if (noteId) {
-          await taskManager.setDateRange(currentDateRange.startDate, currentDateRange.endDate);
+        const defaultFromSettings = await getDefaultNoteId();
+        
+        // Set initialization flag to prevent unwanted changeNote events during this request only
+        isInitializing = true;
+        
+        try {
+          // Use the same stored date range logic as working cases (manual note change, etc.)
+          const currentDateRange = await getCurrentDateRange();
+          const aggregationLevel = await getAggregationLevel();
+          
+          // Reset to default if current noteId doesn't match settings (e.g., during panel show)
+          if (defaultFromSettings && noteId !== defaultFromSettings) {
+            noteId = defaultFromSettings;
+            await noteManager.setNoteId(noteId);
+            await taskManager.setNoteId(noteId);
+          }
+          
+          // Set the date range to ensure proper filtering (this will trigger another scan)
+          if (noteId) {
+            await taskManager.setDateRange(currentDateRange.startDate, currentDateRange.endDate);
+          }
+          
+          const initialData = await taskManager.getInitialData();
+          
+          await joplin.views.panels.postMessage(panel, {
+            name: 'initialData',
+            ...initialData,
+            currentDateRange,
+            aggregationLevel
+          });
+        } finally {
+          // Always clear the flag when done, no timeout needed
+          isInitializing = false;
         }
-        
-        const initialData = await taskManager.getInitialData();
-        await joplin.views.panels.postMessage(panel, {
-          name: 'initialData',
-          ...initialData,
-          currentDateRange,
-          aggregationLevel
-        });
 
       } else if (message.name === 'applyDateFilter') {
         if (noteId) {
