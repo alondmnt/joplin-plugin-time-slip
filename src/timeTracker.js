@@ -804,7 +804,8 @@ function createAutocomplete(input, getItems, onSelect) {
 
   return {
     teardown,
-    updateItems: updateAutocompleteList
+    updateItems: updateAutocompleteList,
+    isVisible: () => autocompleteList && autocompleteList.style.display !== 'none'
   };
 }
 
@@ -825,8 +826,14 @@ const projectAutocomplete = createAutocomplete(
 );
 
 function updateAutocompleteLists() {
-  taskAutocomplete.updateItems();
-  projectAutocomplete.updateItems();
+  // Only update visible autocomplete dropdowns to preserve user workflow
+  // during sync updates, but still keep data fresh for when user types later
+  if (taskAutocomplete.isVisible()) {
+    taskAutocomplete.updateItems();
+  }
+  if (projectAutocomplete.isVisible()) {
+    projectAutocomplete.updateItems();
+  }
 }
 
 function formatDateTime(date) {
