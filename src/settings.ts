@@ -82,6 +82,30 @@ export async function registerSettings() {
       label: 'Auto-sort time logs',
       description: 'Automatically sort tasks in time log notes based on start time',
     },
+    'timeslip.showDurationColumn': {
+      value: true,
+      type: SettingItemType.Bool,
+      section: 'timeslip',
+      public: true,
+      label: 'Show duration column',
+      description: 'Display the duration column in the completed tasks table',
+    },
+    'timeslip.showPercentageColumn': {
+      value: true,
+      type: SettingItemType.Bool,
+      section: 'timeslip',
+      public: true,
+      label: 'Show percentage column',
+      description: 'Display the percentage column in the completed tasks table',
+    },
+    'timeslip.showEndTimeColumn': {
+      value: true,
+      type: SettingItemType.Bool,
+      section: 'timeslip',
+      public: true,
+      label: 'Show end time column',
+      description: 'Display the end time column in the completed tasks table',
+    },
   });
 }
 
@@ -154,4 +178,16 @@ export async function getCurrentDateRange(): Promise<{ startDate: string | null;
 export function setCurrentDateRange(startDate: string | null, endDate: string | null): void {
   currentStartDate = startDate;
   currentEndDate = endDate;
+}
+
+export async function getShowDurationColumn(): Promise<boolean> {
+  return await joplin.settings.value('timeslip.showDurationColumn');
+}
+
+export async function getShowPercentageColumn(): Promise<boolean> {
+  return await joplin.settings.value('timeslip.showPercentageColumn');
+}
+
+export async function getShowEndTimeColumn(): Promise<boolean> {
+  return await joplin.settings.value('timeslip.showEndTimeColumn');
 }

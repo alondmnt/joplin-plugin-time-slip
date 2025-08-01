@@ -1,6 +1,6 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
-import { getSummarySortOrder, getLogSortOrder, getEnforceSorting } from './settings';
+import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn } from './settings';
 import debounce = require('lodash.debounce');
 
 interface FieldIndices {
@@ -44,6 +44,9 @@ export class TaskManager {
   public debouncedScanAndUpdate: ReturnType<typeof debounce>;
   private logSortOrder: 'ascending' | 'descending' = 'ascending';
   private enforceSorting: boolean = true;
+  private showDurationColumn: boolean = true;
+  private showPercentageColumn: boolean = true;
+  private showEndTimeColumn: boolean = true;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -54,6 +57,7 @@ export class TaskManager {
     this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), 4000);
     this.updateLogSortOrder();
     this.updateEnforceSorting();
+    this.updateColumnVisibility();
   }
 
   private getTaskKey(taskName: string, project: string): string {
@@ -536,7 +540,10 @@ export class TaskManager {
       uniqueProjects: this.uniqueProjects,
       logNotes: await this.getLogNotes(),
       defaultNoteId: this.noteId,
-      sortBy: this.sortBy
+      sortBy: this.sortBy,
+      showDurationColumn: this.showDurationColumn,
+      showPercentageColumn: this.showPercentageColumn,
+      showEndTimeColumn: this.showEndTimeColumn
     };
   }
 
@@ -597,5 +604,19 @@ export class TaskManager {
     } else {
       this.enforceSorting = await getEnforceSorting();
     }
+  }
+
+  async updateColumnVisibility() {
+    this.showDurationColumn = await getShowDurationColumn();
+    this.showPercentageColumn = await getShowPercentageColumn();
+    this.showEndTimeColumn = await getShowEndTimeColumn();
+    
+    // Send the column visibility settings to the frontend
+    this.joplin.views.panels.postMessage(this.panel, {
+      name: 'updateColumnVisibility',
+      showDurationColumn: this.showDurationColumn,
+      showPercentageColumn: this.showPercentageColumn,
+      showEndTimeColumn: this.showEndTimeColumn
+    });
   }
 }

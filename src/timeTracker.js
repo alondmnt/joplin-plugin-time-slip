@@ -22,6 +22,9 @@ let lastEndDate = '';
 let runningTasksInterval;
 
 let currentSortBy = 'duration'; // Default sorting option
+let showDurationColumn = true;
+let showPercentageColumn = true;
+let showEndTimeColumn = true;
 
 function requestInitialData() {
   webviewApi.postMessage({
@@ -268,6 +271,11 @@ webviewApi.onMessage(function(event) {
     taskNameInput.focus();
 
     currentSortBy = message.sortBy || 'duration';
+    
+    // Initialize column visibility settings
+    showDurationColumn = message.showDurationColumn !== undefined ? message.showDurationColumn : true;
+    showPercentageColumn = message.showPercentageColumn !== undefined ? message.showPercentageColumn : true;
+    showEndTimeColumn = message.showEndTimeColumn !== undefined ? message.showEndTimeColumn : true;
   } else if (message.name === 'updateLogNotes') {
     updateNoteSelector(message.notes);
 
@@ -289,6 +297,12 @@ webviewApi.onMessage(function(event) {
 
   } else if (message.name === 'updateSortOrder') {
     currentSortBy = message.sortBy;
+    updateCompletedTasksDisplay();
+
+  } else if (message.name === 'updateColumnVisibility') {
+    showDurationColumn = message.showDurationColumn;
+    showPercentageColumn = message.showPercentageColumn;
+    showEndTimeColumn = message.showEndTimeColumn;
     updateCompletedTasksDisplay();
 
   } else if (message.name === 'requestSummaryCSV') {
@@ -339,6 +353,162 @@ function aggregateTasks(tasks, level) {
   }));
 }
 
+function buildTableHeader(aggregationLevel, showBothColumns) {
+  let headerDuration = 'Duration';
+  let headerTime = 'End Time';
+  let headerProject = 'Project';
+  let headerTask = 'Task';
+  
+  if (currentSortBy === 'duration') {
+    headerDuration += '<span class="arrow-up"></span>';
+  } else if (currentSortBy === 'endTime') {
+    headerTime += '<span class="arrow-up"></span>';
+  } else if (currentSortBy === 'name') {
+    headerProject += '<span class="arrow-down"></span>';
+    headerTask += '<span class="arrow-down"></span>';
+  }
+
+  let headerHtml = '<tr>';
+  
+  if (aggregationLevel === 1) {
+    headerHtml += `<th class="header-cell sortable" data-sort="name">${headerTask}</th>`;
+    headerHtml += `<th class="header-cell sortable" data-sort="name">${headerProject}</th>`;
+  } else if (aggregationLevel === 2) {
+    headerHtml += `<th class="header-cell sortable" data-sort="name">${headerProject}</th>`;
+  } else {
+    headerHtml += `<th class="header-cell">Note</th>`;
+  }
+
+  if (showBothColumns) {
+    // Full width mode - show columns based on individual settings
+    if (showDurationColumn) {
+      headerHtml += `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>`;
+    }
+    if (showPercentageColumn) {
+      headerHtml += `<th class="header-cell">%</th>`;
+    }
+    if (showEndTimeColumn) {
+      headerHtml += `<th class="header-cell sortable" data-sort="endTime">${headerTime}</th>`;
+    }
+  } else {
+    // Narrow mode - show only one data column + percentage
+    const showEndTimeInNarrowMode = currentSortBy === 'endTime' && showEndTimeColumn;
+    const showDurationInNarrowMode = currentSortBy !== 'endTime' && showDurationColumn;
+    
+    if (showEndTimeInNarrowMode || showDurationInNarrowMode) {
+      headerHtml += `<th class="header-cell sortable" data-sort="${showEndTimeInNarrowMode ? 'endTime' : 'duration'}">`;
+      headerHtml += showEndTimeInNarrowMode ? headerTime : headerDuration;
+      headerHtml += `</th>`;
+    }
+    if (showPercentageColumn) {
+      headerHtml += `<th class="header-cell">%</th>`;
+    }
+  }
+
+  if (aggregationLevel === 1) {
+    headerHtml += `<th class="header-cell">Action</th>`;
+  }
+  
+  headerHtml += '</tr>';
+  return headerHtml;
+}
+
+function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuration, formattedEndTime, percentage) {
+  const { name, originalTask, originalProject } = task;
+  let rowHtml = '<tr>';
+  
+  if (aggregationLevel === 1) {
+    rowHtml += `<td>${originalTask}</td>`;
+    rowHtml += `<td>${originalProject}</td>`;
+  } else if (aggregationLevel === 2) {
+    rowHtml += `<td>${name}</td>`;
+  } else {
+    rowHtml += `<td>${selectedNoteName || 'No note selected'}</td>`;
+  }
+
+  if (showBothColumns) {
+    // Full width mode - show columns based on individual settings
+    if (showDurationColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${formattedDuration}</td>`;
+    }
+    if (showPercentageColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${percentage}%</td>`;
+    }
+    if (showEndTimeColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${formattedEndTime}</td>`;
+    }
+  } else {
+    // Narrow mode - show only one data column + percentage
+    const showEndTimeInNarrowMode = currentSortBy === 'endTime' && showEndTimeColumn;
+    const showDurationInNarrowMode = currentSortBy !== 'endTime' && showDurationColumn;
+    
+    if (showEndTimeInNarrowMode || showDurationInNarrowMode) {
+      rowHtml += `<td style="word-wrap: break-word">`;
+      rowHtml += showEndTimeInNarrowMode ? formattedEndTime : formattedDuration;
+      rowHtml += `</td>`;
+    }
+    if (showPercentageColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${percentage}%</td>`;
+    }
+  }
+
+  if (aggregationLevel === 1) {
+    rowHtml += `<td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>`;
+  }
+  
+  rowHtml += '</tr>';
+  return rowHtml;
+}
+
+function buildCsvHeader(aggregationLevel) {
+  let csvHeader = '';
+  
+  if (aggregationLevel === 1) {
+    csvHeader = 'Task,Project';
+  } else if (aggregationLevel === 2) {
+    csvHeader = 'Project';
+  } else {
+    csvHeader = 'Note';
+  }
+  
+  if (showDurationColumn) {
+    csvHeader += ',Duration';
+  }
+  if (showPercentageColumn) {
+    csvHeader += ',%';
+  }
+  if (showEndTimeColumn) {
+    csvHeader += ',End date,End time';
+  }
+  
+  return csvHeader + '\n';
+}
+
+function buildCsvRow(task, aggregationLevel, formattedDuration, csvFormattedEndTime, percentage) {
+  const { name, originalTask, originalProject } = task;
+  let csvRow = '';
+  
+  if (aggregationLevel === 1) {
+    csvRow = `${originalTask},${originalProject}`;
+  } else if (aggregationLevel === 2) {
+    csvRow = name;
+  } else {
+    csvRow = selectedNoteName || 'No note selected';
+  }
+  
+  if (showDurationColumn) {
+    csvRow += `,${formattedDuration}`;
+  }
+  if (showPercentageColumn) {
+    csvRow += `,${percentage}%`;
+  }
+  if (showEndTimeColumn) {
+    csvRow += `,${csvFormattedEndTime}`;
+  }
+  
+  return csvRow + '\n';
+}
+
 function updateCompletedTasksDisplay() {
   const aggregationLevelDiv = document.querySelector('.aggregation-level');
 
@@ -377,93 +547,20 @@ function updateCompletedTasksDisplay() {
 
     tasksHtml += '<table class="completed-tasks-table">';
     
-    // Table header based on aggregation level
-    let headerDuration = 'Duration';
-    let headerTime = 'End Time';
-    let headerProject = 'Project';
-    let headerTask = 'Task';
-    if (currentSortBy === 'duration') {
-      headerDuration += '<span class="arrow-up"></span>';
-    } else if (currentSortBy === 'endTime') {
-      headerTime += '<span class="arrow-up"></span>';
-    } else if (currentSortBy === 'name') {
-      headerProject += '<span class="arrow-down"></span>';
-      headerTask += '<span class="arrow-down"></span>';
-    }
+    // Generate CSV header and table header
+    csvContent = buildCsvHeader(currentAggregationLevel);
+    tasksHtml += buildTableHeader(currentAggregationLevel, showBothColumns);
 
-    if (currentAggregationLevel === 1) {
-      csvContent = 'Task,Project,Duration,%,End date,End time\n';
-      tasksHtml += `<tr>
-        <th class="header-cell sortable" data-sort="name">${headerTask}</th>
-        <th class="header-cell sortable" data-sort="name">${headerProject}</th>
-        ${showBothColumns ? 
-          `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
-           <th class="header-cell">%</th>
-           <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>` :
-          `<th class="header-cell sortable" data-sort="${currentSortBy === 'endTime' ? 'endTime' : 'duration'}">
-             ${currentSortBy === 'endTime' ? headerTime : headerDuration}
-           </th>
-           <th class="header-cell">%</th>`
-        }
-        <th class="header-cell">Action</th>
-      </tr>`;
-    } else if (currentAggregationLevel === 2) {
-      csvContent = 'Project,Duration,%,End date,End time\n';
-      tasksHtml += `<tr>
-        <th class="header-cell sortable" data-sort="name">${headerProject}</th>
-        <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
-        <th class="header-cell">%</th>
-        <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>
-      </tr>`;
-    } else {
-      csvContent = 'Note,Duration,%,End date,End time\n';
-      tasksHtml += `<tr>
-        <th class="header-cell">Note</th>
-        <th class="header-cell sortable" data-sort="duration">${headerDuration}</th>
-        <th class="header-cell">%</th>
-        <th class="header-cell sortable" data-sort="endTime">${headerTime}</th>
-      </tr>`;
-    }
-
-    aggregatedTasks.forEach(({ name, duration, originalTask, originalProject, endTime }) => {
+    aggregatedTasks.forEach((task) => {
+      const { duration, endTime } = task;
       const formattedDuration = formatDuration(Math.floor(duration / 1000));
       const formattedEndTime = formatDateTime(new Date(endTime));
       const csvFormattedEndTime = formattedEndTime.replace('<br>', ',');
       const percentage = totalDuration > 0 ? ((duration / totalDuration) * 100).toFixed(1) : '0.0';
       
-      if (currentAggregationLevel === 1) {
-        csvContent += `${originalTask},${originalProject},${formattedDuration},${percentage}%,${csvFormattedEndTime}\n`;
-        tasksHtml += `<tr>
-          <td>${originalTask}</td>
-          <td>${originalProject}</td>
-          ${showBothColumns ?
-            `<td style="word-wrap: break-word">${formattedDuration}</td>
-             <td style="word-wrap: break-word">${percentage}%</td>
-             <td style="word-wrap: break-word">${formattedEndTime}</td>` :
-            `<td style="word-wrap: break-word">
-               ${currentSortBy === 'endTime' ? formattedEndTime : formattedDuration}
-             </td>
-             <td style="word-wrap: break-word">${percentage}%</td>`
-          }
-          <td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">Start</button></td>
-        </tr>`;
-      } else if (currentAggregationLevel === 2) {
-        csvContent += `${name},${formattedDuration},${percentage}%,${csvFormattedEndTime}\n`;
-        tasksHtml += `<tr>
-          <td>${name}</td>
-          <td style="word-wrap: break-word">${formattedDuration}</td>
-          <td style="word-wrap: break-word">${percentage}%</td>
-          <td style="word-wrap: break-word">${formattedEndTime}</td>
-        </tr>`;
-      } else {
-        csvContent += `${selectedNoteName || 'No note selected'},${formattedDuration},${percentage}%,${csvFormattedEndTime}\n`;
-        tasksHtml += `<tr>
-          <td>${selectedNoteName || 'No note selected'}</td>
-          <td style="word-wrap: break-word">${formattedDuration}</td>
-          <td style="word-wrap: break-word">${percentage}%</td>
-          <td style="word-wrap: break-word">${formattedEndTime}</td>
-        </tr>`;
-      }
+      // Generate CSV row and table row
+      csvContent += buildCsvRow(task, currentAggregationLevel, formattedDuration, csvFormattedEndTime, percentage);
+      tasksHtml += buildTableRow(task, currentAggregationLevel, showBothColumns, formattedDuration, formattedEndTime, percentage);
     });
     
     tasksHtml += '</table>';

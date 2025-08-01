@@ -197,6 +197,11 @@ joplin.plugins.register({
         await taskManager.updateEnforceSorting();
         await taskManager.scanNoteAndUpdateTasks();
       }
+      if (event.keys.includes('timeslip.showDurationColumn') || 
+          event.keys.includes('timeslip.showPercentageColumn') || 
+          event.keys.includes('timeslip.showEndTimeColumn')) {
+        await taskManager.updateColumnVisibility();
+      }
     });
 
     await joplin.views.panels.onMessage(panel, async (message) => {
