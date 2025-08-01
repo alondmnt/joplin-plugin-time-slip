@@ -257,10 +257,11 @@ webviewApi.onMessage(function(event) {
     updateNoteSelector(message.logNotes);
     
     // If there's a default note ID, select it and set the selectedNoteName
+    // No need to trigger change event since backend already scanned with proper filtering
     if (message.defaultNoteId && noteSelector.querySelector(`option[value="${message.defaultNoteId}"]`)) {
       noteSelector.value = message.defaultNoteId;
       selectedNoteName = noteSelector.options[noteSelector.selectedIndex].text;
-      noteSelector.dispatchEvent(new Event('change'));
+      updateOpenNoteButtonVisibility(); // Update UI without triggering backend rescan
     }
 
     // Set the aggregation level

@@ -245,9 +245,15 @@ joplin.plugins.register({
         }
 
       } else if (message.name === 'requestInitialData') {
-        const initialData = await taskManager.getInitialData();
         const currentDateRange = await getCurrentDateRange();
         const aggregationLevel = await getAggregationLevel();
+        
+        // Set the date range before getting initial data to ensure proper filtering
+        if (noteId) {
+          await taskManager.setDateRange(currentDateRange.startDate, currentDateRange.endDate);
+        }
+        
+        const initialData = await taskManager.getInitialData();
         await joplin.views.panels.postMessage(panel, {
           name: 'initialData',
           ...initialData,

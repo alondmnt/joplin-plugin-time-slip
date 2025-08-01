@@ -533,6 +533,11 @@ export class TaskManager {
   }
 
   async getInitialData() {
+    // If we have a noteId, ensure we scan it first to get current, properly filtered data
+    if (this.noteId) {
+      await this.scanNoteAndUpdateTasks();
+    }
+    
     return {
       runningTasks: this.tasks,
       completedTasks: this.completedTasks,
