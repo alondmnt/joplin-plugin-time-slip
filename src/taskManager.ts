@@ -539,6 +539,9 @@ export class TaskManager {
       await this.scanNoteAndUpdateTasks();
     }
     
+    // Refresh sort order from settings to ensure it's current when panel is re-shown
+    await this.initializeSortOrder();
+    
     // Get the actual default note ID from settings, not the current noteId
     const defaultNoteIdFromSettings = await this.joplin.settings.value('timeslip.defaultNoteId');
     

@@ -251,6 +251,20 @@ webviewApi.onMessage(function(event) {
     completedTasks = message.completedTasks || [];
     uniqueTasks = message.uniqueTasks || [];
     uniqueProjects = message.uniqueProjects || [];
+    
+    // Set the aggregation level FIRST
+    currentAggregationLevel = message.aggregationLevel || 1;
+    aggregationSlider.value = currentAggregationLevel;
+    
+    // Set the sort order BEFORE calling updateCompletedTasksDisplay
+    currentSortBy = message.sortBy || 'duration';
+    
+    // Initialize column visibility settings
+    showDurationColumn = message.showDurationColumn !== undefined ? message.showDurationColumn : true;
+    showPercentageColumn = message.showPercentageColumn !== undefined ? message.showPercentageColumn : true;
+    showEndTimeColumn = message.showEndTimeColumn !== undefined ? message.showEndTimeColumn : true;
+    
+    // NOW update the displays with the correct settings
     updateRunningTasksDisplay();
     updateCompletedTasksDisplay();
     updateAutocompleteLists();
@@ -264,19 +278,7 @@ webviewApi.onMessage(function(event) {
       updateOpenNoteButtonVisibility(); // Update UI without triggering backend rescan
     }
 
-    // Set the aggregation level
-    currentAggregationLevel = message.aggregationLevel || 1;
-    aggregationSlider.value = currentAggregationLevel;
-    updateCompletedTasksDisplay();
-
     taskNameInput.focus();
-
-    currentSortBy = message.sortBy || 'duration';
-    
-    // Initialize column visibility settings
-    showDurationColumn = message.showDurationColumn !== undefined ? message.showDurationColumn : true;
-    showPercentageColumn = message.showPercentageColumn !== undefined ? message.showPercentageColumn : true;
-    showEndTimeColumn = message.showEndTimeColumn !== undefined ? message.showEndTimeColumn : true;
   } else if (message.name === 'updateLogNotes') {
     updateNoteSelector(message.notes);
 
