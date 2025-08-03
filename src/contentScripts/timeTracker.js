@@ -384,7 +384,11 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
     headerHtml += `<th class="header-cell">Note</th>`;
   }
 
-  if (showBothColumns) {
+  if (aggregationLevel === 3) {
+    // Note level - always show both duration and end time, never show percentage
+    headerHtml += `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>`;
+    headerHtml += `<th class="header-cell sortable" data-sort="endTime">${headerTime}</th>`;
+  } else if (showBothColumns) {
     // Full width mode - show columns based on individual settings
     if (showDurationColumn) {
       headerHtml += `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>`;
@@ -444,7 +448,11 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
     rowHtml += `<td>${selectedNoteName || 'No note selected'}</td>`;
   }
 
-  if (showBothColumns) {
+  if (aggregationLevel === 3) {
+    // Note level - always show both duration and end time, never show percentage
+    rowHtml += `<td style="word-wrap: break-word">${formattedDuration}</td>`;
+    rowHtml += `<td style="word-wrap: break-word">${formattedEndTime}</td>`;
+  } else if (showBothColumns) {
     // Full width mode - show columns based on individual settings
     if (showDurationColumn) {
       rowHtml += `<td style="word-wrap: break-word">${formattedDuration}</td>`;
@@ -502,14 +510,19 @@ function buildCsvHeader(aggregationLevel) {
     csvHeader = 'Note';
   }
   
-  if (showDurationColumn) {
-    csvHeader += ',Duration';
-  }
-  if (showPercentageColumn) {
-    csvHeader += ',%';
-  }
-  if (showEndTimeColumn) {
-    csvHeader += ',End date,End time';
+  if (aggregationLevel === 3) {
+    // Note level - always show both duration and end time, never show percentage
+    csvHeader += ',Duration,End date,End time';
+  } else {
+    if (showDurationColumn) {
+      csvHeader += ',Duration';
+    }
+    if (showPercentageColumn) {
+      csvHeader += ',%';
+    }
+    if (showEndTimeColumn) {
+      csvHeader += ',End date,End time';
+    }
   }
   
   return csvHeader + '\n';
@@ -527,14 +540,19 @@ function buildCsvRow(task, aggregationLevel, formattedDuration, csvFormattedEndT
     csvRow = selectedNoteName || 'No note selected';
   }
   
-  if (showDurationColumn) {
-    csvRow += `,${formattedDuration}`;
-  }
-  if (showPercentageColumn) {
-    csvRow += `,${percentage}%`;
-  }
-  if (showEndTimeColumn) {
-    csvRow += `,${csvFormattedEndTime}`;
+  if (aggregationLevel === 3) {
+    // Note level - always show both duration and end time, never show percentage
+    csvRow += `,${formattedDuration},${csvFormattedEndTime}`;
+  } else {
+    if (showDurationColumn) {
+      csvRow += `,${formattedDuration}`;
+    }
+    if (showPercentageColumn) {
+      csvRow += `,${percentage}%`;
+    }
+    if (showEndTimeColumn) {
+      csvRow += `,${csvFormattedEndTime}`;
+    }
   }
   
   return csvRow + '\n';
