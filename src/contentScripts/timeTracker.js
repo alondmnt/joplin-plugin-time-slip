@@ -385,11 +385,26 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
   }
 
   if (aggregationLevel === 3) {
-    // Note level - always show both duration and end time, never show percentage
-    headerHtml += `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>`;
-    headerHtml += `<th class="header-cell sortable" data-sort="endTime">${headerTime}</th>`;
+    // Note level - show duration/end time if enabled, never show percentage, ignore panel width
+    if (showDurationColumn) {
+      headerHtml += `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>`;
+    }
+    if (showEndTimeColumn) {
+      headerHtml += `<th class="header-cell sortable" data-sort="endTime">${headerTime}</th>`;
+    }
+  } else if (aggregationLevel === 2) {
+    // Project level - show duration/end time/percentage if enabled, ignore panel width
+    if (showDurationColumn) {
+      headerHtml += `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>`;
+    }
+    if (showPercentageColumn) {
+      headerHtml += `<th class="header-cell">%</th>`;
+    }
+    if (showEndTimeColumn) {
+      headerHtml += `<th class="header-cell sortable" data-sort="endTime">${headerTime}</th>`;
+    }
   } else if (showBothColumns) {
-    // Full width mode - show columns based on individual settings
+    // Task level - Full width mode - show columns based on individual settings
     if (showDurationColumn) {
       headerHtml += `<th class="header-cell sortable" data-sort="duration">${headerDuration}</th>`;
     }
@@ -400,7 +415,7 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
       headerHtml += `<th class="header-cell sortable" data-sort="endTime">${headerTime}</th>`;
     }
   } else {
-    // Narrow mode - show only one data column + percentage
+    // Task level - Narrow mode - show only one data column + percentage
     // Priority: show preferred column based on sort, otherwise fallback to available column
     let showEndTimeInNarrowMode = false;
     let showDurationInNarrowMode = false;
@@ -449,11 +464,26 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
   }
 
   if (aggregationLevel === 3) {
-    // Note level - always show both duration and end time, never show percentage
-    rowHtml += `<td style="word-wrap: break-word">${formattedDuration}</td>`;
-    rowHtml += `<td style="word-wrap: break-word">${formattedEndTime}</td>`;
+    // Note level - show duration/end time if enabled, never show percentage, ignore panel width
+    if (showDurationColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${formattedDuration}</td>`;
+    }
+    if (showEndTimeColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${formattedEndTime}</td>`;
+    }
+  } else if (aggregationLevel === 2) {
+    // Project level - show duration/end time/percentage if enabled, ignore panel width
+    if (showDurationColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${formattedDuration}</td>`;
+    }
+    if (showPercentageColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${percentage}%</td>`;
+    }
+    if (showEndTimeColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${formattedEndTime}</td>`;
+    }
   } else if (showBothColumns) {
-    // Full width mode - show columns based on individual settings
+    // Task level - Full width mode - show columns based on individual settings
     if (showDurationColumn) {
       rowHtml += `<td style="word-wrap: break-word">${formattedDuration}</td>`;
     }
@@ -464,7 +494,7 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
       rowHtml += `<td style="word-wrap: break-word">${formattedEndTime}</td>`;
     }
   } else {
-    // Narrow mode - show only one data column + percentage
+    // Task level - Narrow mode - show only one data column + percentage
     // Priority: show preferred column based on sort, otherwise fallback to available column
     let showEndTimeInNarrowMode = false;
     let showDurationInNarrowMode = false;
@@ -511,9 +541,26 @@ function buildCsvHeader(aggregationLevel) {
   }
   
   if (aggregationLevel === 3) {
-    // Note level - always show both duration and end time, never show percentage
-    csvHeader += ',Duration,End date,End time';
+    // Note level - show duration/end time if enabled, never show percentage
+    if (showDurationColumn) {
+      csvHeader += ',Duration';
+    }
+    if (showEndTimeColumn) {
+      csvHeader += ',End date,End time';
+    }
+  } else if (aggregationLevel === 2) {
+    // Project level - show duration/end time/percentage if enabled
+    if (showDurationColumn) {
+      csvHeader += ',Duration';
+    }
+    if (showPercentageColumn) {
+      csvHeader += ',%';
+    }
+    if (showEndTimeColumn) {
+      csvHeader += ',End date,End time';
+    }
   } else {
+    // Task level - current behavior
     if (showDurationColumn) {
       csvHeader += ',Duration';
     }
@@ -541,9 +588,26 @@ function buildCsvRow(task, aggregationLevel, formattedDuration, csvFormattedEndT
   }
   
   if (aggregationLevel === 3) {
-    // Note level - always show both duration and end time, never show percentage
-    csvRow += `,${formattedDuration},${csvFormattedEndTime}`;
+    // Note level - show duration/end time if enabled, never show percentage
+    if (showDurationColumn) {
+      csvRow += `,${formattedDuration}`;
+    }
+    if (showEndTimeColumn) {
+      csvRow += `,${csvFormattedEndTime}`;
+    }
+  } else if (aggregationLevel === 2) {
+    // Project level - show duration/end time/percentage if enabled
+    if (showDurationColumn) {
+      csvRow += `,${formattedDuration}`;
+    }
+    if (showPercentageColumn) {
+      csvRow += `,${percentage}%`;
+    }
+    if (showEndTimeColumn) {
+      csvRow += `,${csvFormattedEndTime}`;
+    }
   } else {
+    // Task level - current behavior
     if (showDurationColumn) {
       csvRow += `,${formattedDuration}`;
     }
