@@ -342,6 +342,15 @@ joplin.plugins.register({
           name: 'replaceSelection',
           args: [message.content],
         });
+
+      } else if (message.name === 'refreshAutocompleteLists') {
+        // More efficient: directly send existing autocomplete data instead of full rescan
+        const initialData = await taskManager.getInitialData();
+        await joplin.views.panels.postMessage(panel, {
+          name: 'updateAutocompleteLists',
+          tasks: initialData.uniqueTasks,
+          projects: initialData.uniqueProjects
+        });
       }
     });
   },

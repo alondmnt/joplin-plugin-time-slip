@@ -391,6 +391,10 @@ export class TaskManager {
   }
 
   private updateAutocompleteLists(uniqueTasks: string[], uniqueProjects: string[]) {
+    // Store the data internally for getInitialData() to return
+    this.uniqueTasks = uniqueTasks;
+    this.uniqueProjects = uniqueProjects;
+    
     this.joplin.views.panels.postMessage(this.panel, {
       name: 'updateAutocompleteLists',
       tasks: uniqueTasks,

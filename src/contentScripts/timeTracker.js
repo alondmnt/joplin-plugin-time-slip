@@ -20,6 +20,7 @@ let lastStartDate = '';
 let lastEndDate = '';
 
 let runningTasksInterval;
+let lastRefreshRequest = 0;
 
 let currentSortBy = 'duration'; // Default sorting option
 let showDurationColumn = true;
@@ -239,6 +240,7 @@ webviewApi.onMessage(function(event) {
   } else if (message.name === 'updateAutocompleteLists') {
     uniqueTasks = message.tasks || [];
     uniqueProjects = message.projects || [];
+
     updateAutocompleteLists();
 
   } else if (message.name === 'error') {
@@ -753,18 +755,32 @@ function createAutocomplete(input, getItems, onSelect) {
     const items = getItems();
     const value = input.value.toLowerCase();
 
-    if (!value || items.length === 0) {
+    if (!value) {
       hideAutocompleteList();
       return;
     }
 
-    const matches = items
-      .filter(item => item.toLowerCase().includes(value))
-      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-
-    if (matches.length === 0) {
-      hideAutocompleteList();
-      return;
+    // Show dropdown even with no items - it will populate when data arrives
+    let matches;
+    if (items.length === 0) {
+      matches = ['Loading...'];
+      // Safety net: request fresh data if stuck on Loading (less aggressive now)
+      // Throttle to once per 5 seconds since root cause is fixed
+      const now = Date.now();
+      if (now - lastRefreshRequest > 5000) {
+        lastRefreshRequest = now;
+        webviewApi.postMessage({
+          name: 'refreshAutocompleteLists'
+        });
+      }
+    } else {
+      matches = items
+        .filter(item => item.toLowerCase().includes(value))
+        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      
+      if (matches.length === 0) {
+        matches = ['No matches found'];
+      }
     }
 
     createOrUpdateList(matches);
@@ -824,6 +840,10 @@ function createAutocomplete(input, getItems, onSelect) {
   }
 
   function selectItem(value) {
+    // Don't select placeholder items
+    if (value === 'Loading...' || value === 'No matches found') {
+      return;
+    }
     input.value = value;
     hideAutocompleteList();
     onSelect(value);
@@ -833,7 +853,12 @@ function createAutocomplete(input, getItems, onSelect) {
 
   return {
     teardown,
-    updateItems: updateAutocompleteList,
+    updateItems: updateAutocompleteList,  // Full update including visibility control (triggered by typing)
+    updateContent: () => {
+      // Always update content when new data arrives - visibility controlled by input text only
+      // updateAutocompleteList() safely checks input.value before showing dropdown
+      updateAutocompleteList();
+    },
     isVisible: () => autocompleteList && autocompleteList.style.display !== 'none'
   };
 }
@@ -855,14 +880,13 @@ const projectAutocomplete = createAutocomplete(
 );
 
 function updateAutocompleteLists() {
-  // Only update visible autocomplete dropdowns to preserve user workflow
-  // during sync updates, but still keep data fresh for when user types later
-  if (taskAutocomplete.isVisible()) {
-    taskAutocomplete.updateItems();
-  }
-  if (projectAutocomplete.isVisible()) {
-    projectAutocomplete.updateItems();
-  }
+  // Clear separation of concerns:
+  // 1. ALWAYS update content when new data arrives (global arrays already updated)
+  // 2. Visibility is controlled only by user typing (via updateItems)
+  taskAutocomplete.updateContent();      // Updates content, preserves current visibility
+  projectAutocomplete.updateContent();   // Updates content, preserves current visibility
+  
+  // Visibility changes only happen when user types (calls updateItems directly)
 }
 
 function formatDateTime(date) {
