@@ -65,7 +65,7 @@ export class NoteManager {
     try {
       await this.joplin.commands.execute('editor.setText', content);
     } catch (error) {
-      console.error('[TIME-SLIP] Editor update failed:', error);
+      console.debug('[TIME-SLIP] Editor update failed:', error);
     }
   }
 
