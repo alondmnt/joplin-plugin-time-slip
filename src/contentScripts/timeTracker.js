@@ -432,13 +432,13 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
       showDurationInNarrowMode = true;
     }
     
-    if (showPercentageColumn) {
-      headerHtml += `<th class="header-cell">%</th>`;
-    }
     if (showEndTimeInNarrowMode || showDurationInNarrowMode) {
       headerHtml += `<th class="header-cell sortable" data-sort="${showEndTimeInNarrowMode ? 'endTime' : 'duration'}">`;
       headerHtml += showEndTimeInNarrowMode ? headerTime : headerDuration;
       headerHtml += `</th>`;
+    }
+    if (showPercentageColumn) {
+      headerHtml += `<th class="header-cell">%</th>`;
     }
   }
 
@@ -511,13 +511,13 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
       showDurationInNarrowMode = true;
     }
     
-    if (showPercentageColumn) {
-      rowHtml += `<td style="word-wrap: break-word">${percentage}%</td>`;
-    }
     if (showEndTimeInNarrowMode || showDurationInNarrowMode) {
       rowHtml += `<td style="word-wrap: break-word">`;
       rowHtml += showEndTimeInNarrowMode ? formattedEndTime : formattedDuration;
       rowHtml += `</td>`;
+    }
+    if (showPercentageColumn) {
+      rowHtml += `<td style="word-wrap: break-word">${percentage}%</td>`;
     }
   }
 
