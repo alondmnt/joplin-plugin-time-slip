@@ -1,9 +1,26 @@
-# [v1.03](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.03)
+# [v1.1.0](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.1.0)
+*Released on 2025-08-13T11:16:00Z*
+
+- removed: redundant task scanning after setting date range in index.ts
+- added: percentage calculations for task durations
+- added: completed tasks column visibility settings
+- added: set cursor position when updating the editor
+- improved: start button style (play icon)
+- improved: autocomplete dropdowns refresh
+- improved: init sequence logic
+- improved: change editor update fail message from error to debug
+- fixed: panel re-init after hide/show
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-time-slip/compare/v1.0.3...v1.1.0
+
+---
+
+# [v1.0.3](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.0.3)
 *Released on 2025-04-14T12:52:19Z*
 
 - added: dismissPluginPanels on mobile
 
-**Full Changelog**: https://github.com/alondmnt/joplin-plugin-time-slip/compare/v1.0.2...v1.03
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-time-slip/compare/v1.0.2...v1.0.3
 
 ---
 
