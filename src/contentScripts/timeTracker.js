@@ -669,7 +669,8 @@ function updateCompletedTasksDisplay() {
       const formattedDuration = formatDuration(Math.floor(duration / 1000));
       const formattedEndTime = formatDateTime(new Date(endTime));
       const csvFormattedEndTime = formattedEndTime.replace('<br>', ',');
-      const percentage = totalDuration > 0 ? ((duration / totalDuration) * 100).toFixed(1) : '0.0';
+      const percentageValue = totalDuration > 0 ? (duration / totalDuration) * 100 : 0;
+      const percentage = percentageValue < 10 ? percentageValue.toFixed(1) : percentageValue.toFixed(0);
       
       // Generate CSV row and table row
       csvContent += buildCsvRow(task, currentAggregationLevel, formattedDuration, csvFormattedEndTime, percentage);
