@@ -16,6 +16,7 @@ let tasks = {};
 let completedTasks = [];
 let uniqueTasks = [];
 let uniqueProjects = [];
+let lastTotalCompletedSeconds = 0;
 let lastStartDate = '';
 let lastEndDate = '';
 
@@ -73,6 +74,7 @@ function updateRunningTasksDisplay() {
       const [taskName, projectName] = key.split('|');
       const durationSeconds = Math.floor((now - startTime) / 1000);
       const formattedDuration = formatDuration(durationSeconds);
+      const formattedTotal = formatDuration(durationSeconds + lastTotalCompletedSeconds);
       const formattedStartTime = formatStartTime(startTime);
       return `<div class="running-task">
         <div class="running-task-header">
@@ -84,7 +86,7 @@ function updateRunningTasksDisplay() {
         </div>
         <div class="running-task-info">
           <span class="running-task-start-time">${formattedStartTime}</span>
-          <span class="running-task-duration">${formattedDuration}</span>
+          <span class="running-task-duration">${formattedDuration} (${formattedTotal})</span>
         </div>
       </div>`;
     }).join('');
@@ -521,7 +523,7 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
     }
   }
 
-  if (aggregationLevel === 1) {
+  if (aggregationLevel === 1 && formattedEndTime !== '') {
     rowHtml += `<td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">▶</button></td>`;
   }
   
@@ -654,6 +656,7 @@ function updateCompletedTasksDisplay() {
     
     // Calculate total duration for percentage calculations
     const totalDuration = aggregatedTasks.reduce((sum, task) => sum + task.duration, 0);
+    lastTotalCompletedSeconds = totalDuration / 1000;
     
     const timeTrackerWidth = document.getElementById('timeTracker').offsetWidth;
     const showBothColumns = timeTrackerWidth > 340;  // in pixels
@@ -676,7 +679,11 @@ function updateCompletedTasksDisplay() {
       csvContent += buildCsvRow(task, currentAggregationLevel, formattedDuration, csvFormattedEndTime, percentage);
       tasksHtml += buildTableRow(task, currentAggregationLevel, showBothColumns, formattedDuration, formattedEndTime, percentage);
     });
-    
+    if (currentAggregationLevel !== 3) {
+      const formattedDuration = formatDuration(Math.floor(totalDuration / 1000));
+      tasksHtml += buildTableRow({name: 'Total', originalTask: '', originalProject: 'Total'}, currentAggregationLevel, showBothColumns, formattedDuration, '', 100);
+    }
+
     tasksHtml += '</table>';
     aggregationLevelDiv.classList.remove('hidden');
   } else {
