@@ -454,10 +454,18 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
 
 function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuration, formattedEndTime, percentage) {
   const { name, originalTask, originalProject } = task;
+  // Normal URL replacement and markdown replacement collide. (?<!\() doesn't seem to work as addition on normal regex.
+  let formattedTask = "";
+  const markdownRegex = /\[(.*?)\]\((.*?)\)/g;
+  if ( markdownRegex.test(originalTask) ) {
+    formattedTask = originalTask.replaceAll(markdownRegex, '<a href=$2 target="_blank">$1</a>');
+  } else {
+    formattedTask = originalTask.replaceAll(/(https?:\/\/.*\/)([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/g, '<a href=$1$2 target="_blank">$2</a>');
+  }
   let rowHtml = '<tr>';
   
   if (aggregationLevel === 1) {
-    rowHtml += `<td>${originalTask}</td>`;
+    rowHtml += `<td>${formattedTask}</td>`;
     rowHtml += `<td>${originalProject}</td>`;
   } else if (aggregationLevel === 2) {
     rowHtml += `<td>${name}</td>`;
