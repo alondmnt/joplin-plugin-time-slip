@@ -1,6 +1,6 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
-import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn } from './settings';
+import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask } from './settings';
 import debounce = require('lodash.debounce');
 
 interface FieldIndices {
@@ -43,6 +43,7 @@ export class TaskManager {
   private sortBy: 'duration' | 'endTime' | 'name' = 'duration';
   public debouncedScanAndUpdate: ReturnType<typeof debounce>;
   private logSortOrder: 'ascending' | 'descending' = 'ascending';
+  private onlyOneActiveTask: boolean = false;
   private enforceSorting: boolean = true;
   private showDurationColumn: boolean = true;
   private showPercentageColumn: boolean = true;
@@ -58,10 +59,16 @@ export class TaskManager {
     this.updateLogSortOrder();
     this.updateEnforceSorting();
     this.updateColumnVisibility();
+    this.updateOnlyOneActiveTask();
   }
 
   private getTaskKey(taskName: string, project: string): string {
     return `${taskName}|${project}`;
+  }
+
+  private splitTaskKey(taskKey: string): {task: string, project: string} {
+    let parts = taskKey.split('|');
+    return {task: parts[0], project: parts[1]};
   }
 
   async initialize() {
@@ -436,6 +443,9 @@ export class TaskManager {
       });
 
     } else {
+      if ( this.onlyOneActiveTask ) {
+        await this.stopAllTasks();
+      }
       const startTime = new Date();
       this.tasks[taskKey] = { startTime: startTime.getTime(), project };
       this.updateRunningTasks();
@@ -537,6 +547,13 @@ export class TaskManager {
     await this.scanNoteAndUpdateTasks();
   }
 
+  async stopAllTasks() {
+    await Promise.all(Object.keys(this.tasks).map(async(key) => {
+      let task = this.splitTaskKey(key);
+      await this.stopTask(task.task, task.project);
+    }));
+  }
+
   async getInitialData() {
     // If we have a noteId, ensure we scan it first to get current, properly filtered data
     if (this.noteId) {
@@ -620,6 +637,10 @@ export class TaskManager {
     } else {
       this.enforceSorting = await getEnforceSorting();
     }
+  }
+
+  async updateOnlyOneActiveTask() {
+    this.onlyOneActiveTask = await getOnlyOneActiveTask();
   }
 
   async updateColumnVisibility() {

@@ -205,6 +205,9 @@ joplin.plugins.register({
         await taskManager.updateEnforceSorting();
         await taskManager.scanNoteAndUpdateTasks();
       }
+      if (event.keys.includes('timeslip.onlyOneActiveTask')) {
+        await taskManager.updateOnlyOneActiveTask();
+      }
       if (event.keys.includes('timeslip.showDurationColumn') || 
           event.keys.includes('timeslip.showPercentageColumn') || 
           event.keys.includes('timeslip.showEndTimeColumn')) {

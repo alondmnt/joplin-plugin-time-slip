@@ -10,6 +10,9 @@ const aggregationSlider = document.getElementById('aggregationSlider');
 let currentAggregationLevel = 1;
 const taskFilter = document.getElementById('taskFilter');
 let currentFilter = '';
+const markdownRegex = /\[(.*?)\]\((.*?)\)/g;
+const urlRegex = /(https?:\/\/.*\/)([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/g;
+
 
 
 let tasks = {};
@@ -32,6 +35,14 @@ function requestInitialData() {
   webviewApi.postMessage({
     name: 'requestInitialData'
   });
+}
+
+function formatEmbeddedURLs(unformatted) {
+  if ( markdownRegex.test(unformatted) ) {
+    return unformatted.replaceAll(markdownRegex, '<a href=$2 target="_blank">$1</a>');
+  } else {
+    return unformatted.replaceAll(urlRegex, '<a href=$1$2 target="_blank">$2</a>');
+  }
 }
 
 function formatDuration(seconds) {
@@ -79,7 +90,7 @@ function updateRunningTasksDisplay() {
       return `<div class="running-task">
         <div class="running-task-header">
           <div class="running-task-title-container">
-            <span class="running-task-title">${taskName}</span>
+            <span class="running-task-title">${formatEmbeddedURLs(taskName)}</span>
             <span class="running-task-project">${projectName}</span>
           </div>
           <button class="stopButton" data-task="${taskName}" data-project="${projectName}">Stop</button>
@@ -455,17 +466,10 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
 function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuration, formattedEndTime, percentage) {
   const { name, originalTask, originalProject } = task;
   // Normal URL replacement and markdown replacement collide. (?<!\() doesn't seem to work as addition on normal regex.
-  let formattedTask = "";
-  const markdownRegex = /\[(.*?)\]\((.*?)\)/g;
-  if ( markdownRegex.test(originalTask) ) {
-    formattedTask = originalTask.replaceAll(markdownRegex, '<a href=$2 target="_blank">$1</a>');
-  } else {
-    formattedTask = originalTask.replaceAll(/(https?:\/\/.*\/)([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/g, '<a href=$1$2 target="_blank">$2</a>');
-  }
   let rowHtml = '<tr>';
   
   if (aggregationLevel === 1) {
-    rowHtml += `<td>${formattedTask}</td>`;
+    rowHtml += `<td>${formatEmbeddedURLs(originalTask)}</td>`;
     rowHtml += `<td>${originalProject}</td>`;
   } else if (aggregationLevel === 2) {
     rowHtml += `<td>${name}</td>`;

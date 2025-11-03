@@ -106,6 +106,14 @@ export async function registerSettings() {
       label: 'Show end time column',
       description: 'Display the end time column in the completed tasks table',
     },
+    'timeslip.onlyOneActiveTask': {
+      value: false,
+      type: SettingItemType.Bool,
+      section: 'timeslip',
+      public: true,
+      label: 'Only one actie taks',
+      description: 'Stop all other pending tasks if a new task is started',
+    },
   });
 }
 
@@ -190,4 +198,8 @@ export async function getShowPercentageColumn(): Promise<boolean> {
 
 export async function getShowEndTimeColumn(): Promise<boolean> {
   return await joplin.settings.value('timeslip.showEndTimeColumn');
+}
+
+export async function getOnlyOneActiveTask(): Promise<boolean> {
+  return await joplin.settings.value('timeslip.onlyOneActiveTask');
 }
