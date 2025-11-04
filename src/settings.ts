@@ -111,7 +111,7 @@ export async function registerSettings() {
       type: SettingItemType.Bool,
       section: 'timeslip',
       public: true,
-      label: 'Only one active taks',
+      label: 'Only one active task',
       description: 'Stop all other pending tasks if a new task is started',
     },
   });
