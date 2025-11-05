@@ -91,7 +91,7 @@ function updateRunningTasksDisplay() {
         <div class="running-task-header">
           <div class="running-task-title-container">
             <span class="running-task-title">${formatEmbeddedURLs(taskName)}</span>
-            <span class="running-task-project">${projectName}</span>
+            <span class="running-task-project">${formatEmbeddedURLs(projectName)}</span>
           </div>
           <button class="stopButton" data-task="${taskName}" data-project="${projectName}">Stop</button>
         </div>
@@ -470,9 +470,9 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
   
   if (aggregationLevel === 1) {
     rowHtml += `<td>${formatEmbeddedURLs(originalTask)}</td>`;
-    rowHtml += `<td>${originalProject}</td>`;
+    rowHtml += `<td>${formatEmbeddedURLs(originalProject)}</td>`;
   } else if (aggregationLevel === 2) {
-    rowHtml += `<td>${name}</td>`;
+    rowHtml += `<td>${formatEmbeddedURLs(name)}</td>`;
   } else {
     rowHtml += `<td>${selectedNoteName || 'No note selected'}</td>`;
   }
