@@ -39,11 +39,19 @@ function requestInitialData() {
   });
 }
 
-function formatEmbeddedURLs(unformatted) {
+function formatLinksAsHTML(unformatted) {
   if ( markdownRegex.test(unformatted) ) {
     return unformatted.replaceAll(markdownRegex, '<a href=$2 target="_blank">$1</a>');
   } else {
     return unformatted.replaceAll(urlRegex, '<a href=$1$2 target="_blank">$2</a>');
+  }
+}
+
+function formatLinksAsMarkdown(unformatted) {
+  if ( markdownRegex.test(unformatted) ) {
+    return unformatted;
+  } else {
+    return unformatted.replaceAll(urlRegex, '[$2]($1$2)');
   }
 }
 
@@ -92,8 +100,8 @@ function updateRunningTasksDisplay() {
       return `<div class="running-task">
         <div class="running-task-header">
           <div class="running-task-title-container">
-            <span class="running-task-title">${formatEmbeddedURLs(taskName)}</span>
-            <span class="running-task-project">${formatEmbeddedURLs(projectName)}</span>
+            <span class="running-task-title">${formatLinksAsHTML(taskName)}</span>
+            <span class="running-task-project">${formatLinksAsHTML(projectName)}</span>
           </div>
           <button class="stopButton" data-task="${taskName}" data-project="${projectName}">Stop</button>
         </div>
@@ -476,10 +484,10 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
   let rowHtml = '<tr>';
   
   if (aggregationLevel === 1) {
-    rowHtml += `<td>${formatEmbeddedURLs(originalTask)}</td>`;
-    rowHtml += `<td>${formatEmbeddedURLs(originalProject)}</td>`;
+    rowHtml += `<td>${formatLinksAsHTML(originalTask)}</td>`;
+    rowHtml += `<td>${formatLinksAsHTML(originalProject)}</td>`;
   } else if (aggregationLevel === 2) {
-    rowHtml += `<td>${formatEmbeddedURLs(name)}</td>`;
+    rowHtml += `<td>${formatLinksAsHTML(name)}</td>`;
   } else {
     rowHtml += `<td>${selectedNoteName || 'No note selected'}</td>`;
   }
@@ -601,9 +609,9 @@ function buildCsvRow(task, aggregationLevel, formattedDuration, csvFormattedEndT
   let csvRow = '';
   
   if (aggregationLevel === 1) {
-    csvRow = `${originalTask},${originalProject}`;
+    csvRow = `${formatLinksAsMarkdown(originalTask)},${formatLinksAsMarkdown(originalProject)}`;
   } else if (aggregationLevel === 2) {
-    csvRow = name;
+    csvRow = formatLinksAsMarkdown(name);
   } else {
     csvRow = selectedNoteName || 'No note selected';
   }
@@ -700,7 +708,9 @@ function updateCompletedTasksDisplay() {
     });
     if (currentAggregationLevel !== 3 && showDurationColumn && showTotalInSummary) {
       const formattedDuration = formatDuration(Math.floor(totalDuration / 1000));
-      tasksHtml += buildTableRow({name: 'Total', originalTask: '', originalProject: 'Total'}, currentAggregationLevel, showBothColumns, formattedDuration, '', 100);
+      let task = {name: 'Total', originalTask: '', originalProject: 'Total'};
+      csvContent += buildCsvRow(task, currentAggregationLevel, formattedDuration, '', 100);
+      tasksHtml += buildTableRow(task, currentAggregationLevel, showBothColumns, formattedDuration, '', 100);
     }
 
     tasksHtml += '</table>';
