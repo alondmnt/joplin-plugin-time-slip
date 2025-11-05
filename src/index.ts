@@ -210,7 +210,9 @@ joplin.plugins.register({
       }
       if (event.keys.includes('timeslip.showDurationColumn') || 
           event.keys.includes('timeslip.showPercentageColumn') || 
-          event.keys.includes('timeslip.showEndTimeColumn')) {
+          event.keys.includes('timeslip.showEndTimeColumn') ||
+          event.keys.includes('timeslip.showTotalInSummary') ||
+          event.keys.includes('timeslip.showTotalInActiveTask') ) {
         await taskManager.updateColumnVisibility();
       }
     });

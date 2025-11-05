@@ -106,6 +106,22 @@ export async function registerSettings() {
       label: 'Show end time column',
       description: 'Display the end time column in the completed tasks table',
     },
+    'timeslip.showTotalInSummary': {
+      value: true,
+      type: SettingItemType.Bool,
+      section: 'timeslip',
+      public: true,
+      label: 'Show total time in summary table',
+      description: 'Show a total of the durations in the duration column',
+    },
+    'timeslip.showTotalInActiveTask': {
+      value: false,
+      type: SettingItemType.Bool,
+      section: 'timeslip',
+      public: true,
+      label: 'Show total next to active task',
+      description: 'Adds the total duration of the summary table to the duration of the active task ans shows this next to the active task',
+    },
     'timeslip.onlyOneActiveTask': {
       value: false,
       type: SettingItemType.Bool,
@@ -198,6 +214,14 @@ export async function getShowPercentageColumn(): Promise<boolean> {
 
 export async function getShowEndTimeColumn(): Promise<boolean> {
   return await joplin.settings.value('timeslip.showEndTimeColumn');
+}
+
+export async function getShowTotalInSummary(): Promise<boolean> {
+  return await joplin.settings.value('timeslip.showTotalInSummary');
+}
+
+export async function getShowTotalInActiveTask(): Promise<boolean> {
+  return await joplin.settings.value('timeslip.showTotalInActiveTask');
 }
 
 export async function getOnlyOneActiveTask(): Promise<boolean> {

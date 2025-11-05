@@ -30,6 +30,8 @@ let currentSortBy = 'duration'; // Default sorting option
 let showDurationColumn = true;
 let showPercentageColumn = true;
 let showEndTimeColumn = true;
+let showTotalInSummary = true;
+let showTotalInActiveTask = false;
 
 function requestInitialData() {
   webviewApi.postMessage({
@@ -85,7 +87,7 @@ function updateRunningTasksDisplay() {
       const [taskName, projectName] = key.split('|');
       const durationSeconds = Math.floor((now - startTime) / 1000);
       const formattedDuration = formatDuration(durationSeconds);
-      const formattedTotal = formatDuration(durationSeconds + lastTotalCompletedSeconds);
+      const formattedTotal = showTotalInActiveTask ? ` (${formatDuration(durationSeconds + lastTotalCompletedSeconds)})` : '';
       const formattedStartTime = formatStartTime(startTime);
       return `<div class="running-task">
         <div class="running-task-header">
@@ -97,7 +99,7 @@ function updateRunningTasksDisplay() {
         </div>
         <div class="running-task-info">
           <span class="running-task-start-time">${formattedStartTime}</span>
-          <span class="running-task-duration">${formattedDuration} (${formattedTotal})</span>
+          <span class="running-task-duration">${formattedDuration}${formattedTotal}</span>
         </div>
       </div>`;
     }).join('');
@@ -278,6 +280,8 @@ webviewApi.onMessage(function(event) {
     showDurationColumn = message.showDurationColumn !== undefined ? message.showDurationColumn : true;
     showPercentageColumn = message.showPercentageColumn !== undefined ? message.showPercentageColumn : true;
     showEndTimeColumn = message.showEndTimeColumn !== undefined ? message.showEndTimeColumn : true;
+    showTotalInSummary = message.showTotalInSummary !== undefined ? message.showTotalInSummary : true;
+    showTotalInActiveTask = message.showTotalInActiveTask !== undefined ? message.showTotalInActiveTask : false;
     
     // NOW update the displays with the correct settings
     updateRunningTasksDisplay();
@@ -321,7 +325,10 @@ webviewApi.onMessage(function(event) {
     showDurationColumn = message.showDurationColumn;
     showPercentageColumn = message.showPercentageColumn;
     showEndTimeColumn = message.showEndTimeColumn;
+    showTotalInSummary = message.showTotalInSummary;
+    showTotalInActiveTask = message.showTotalInActiveTask;
     updateCompletedTasksDisplay();
+    updateRunningTasksDisplay();
 
   } else if (message.name === 'requestSummaryCSV') {
     const csvContent = completedTasksDiv.getAttribute('data-csv-content');
@@ -691,7 +698,7 @@ function updateCompletedTasksDisplay() {
       csvContent += buildCsvRow(task, currentAggregationLevel, formattedDuration, csvFormattedEndTime, percentage);
       tasksHtml += buildTableRow(task, currentAggregationLevel, showBothColumns, formattedDuration, formattedEndTime, percentage);
     });
-    if (currentAggregationLevel !== 3) {
+    if (currentAggregationLevel !== 3 && showDurationColumn && showTotalInSummary) {
       const formattedDuration = formatDuration(Math.floor(totalDuration / 1000));
       tasksHtml += buildTableRow({name: 'Total', originalTask: '', originalProject: 'Total'}, currentAggregationLevel, showBothColumns, formattedDuration, '', 100);
     }

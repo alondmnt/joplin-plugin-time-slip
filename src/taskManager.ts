@@ -1,6 +1,6 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
-import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask } from './settings';
+import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask } from './settings';
 import debounce = require('lodash.debounce');
 
 interface FieldIndices {
@@ -48,6 +48,8 @@ export class TaskManager {
   private showDurationColumn: boolean = true;
   private showPercentageColumn: boolean = true;
   private showEndTimeColumn: boolean = true;
+  private showTotalInSummary: boolean = true;
+  private showTotalInActiveTask: boolean = false;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -576,7 +578,9 @@ export class TaskManager {
       sortBy: this.sortBy,
       showDurationColumn: this.showDurationColumn,
       showPercentageColumn: this.showPercentageColumn,
-      showEndTimeColumn: this.showEndTimeColumn
+      showEndTimeColumn: this.showEndTimeColumn,
+      showTotalInSummary: this.showTotalInSummary,
+      showTotalInActiveTask: this.showTotalInActiveTask
     };
   }
 
@@ -647,13 +651,17 @@ export class TaskManager {
     this.showDurationColumn = await getShowDurationColumn();
     this.showPercentageColumn = await getShowPercentageColumn();
     this.showEndTimeColumn = await getShowEndTimeColumn();
+    this.showTotalInSummary = await getShowTotalInSummary();
+    this.showTotalInActiveTask = await getShowTotalInActiveTask();
     
     // Send the column visibility settings to the frontend
     this.joplin.views.panels.postMessage(this.panel, {
       name: 'updateColumnVisibility',
       showDurationColumn: this.showDurationColumn,
       showPercentageColumn: this.showPercentageColumn,
-      showEndTimeColumn: this.showEndTimeColumn
+      showEndTimeColumn: this.showEndTimeColumn,
+      showTotalInSummary: this.showTotalInSummary,
+      showTotalInActiveTask: this.showTotalInActiveTask
     });
   }
 }
