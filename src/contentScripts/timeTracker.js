@@ -550,8 +550,12 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
     }
   }
 
-  if (aggregationLevel === 1 && formattedEndTime !== '') {
-    rowHtml += `<td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">▶</button></td>`;
+  if (aggregationLevel === 1) {
+    if (formattedEndTime !== '') {
+      rowHtml += `<td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">▶</button></td>`;
+    } else {
+      rowHtml += `<td style="word-wrap: break-word"></td>`;
+    }
   }
   
   rowHtml += '</tr>';
