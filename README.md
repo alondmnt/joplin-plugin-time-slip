@@ -18,7 +18,10 @@ Time Slip is a [Joplin](https://joplinapp.org/) plugin that allows you to track 
 
 1. Create a new note and tag it with `time-slip`.
 2. Make sure that the note is selected in the Time Slip panel (you may need to switch to a different note first).
-3. Start a new timer by filling the task and project fields, and clicking the `Start` button. You may start multiple timers.
+3. Start a new timer by filling the task and project fields, and clicking the `Start` button.
+    - You may start multiple timers.
+    - Or you can enforce only one timer to be active.
+    - Task and Project can contain normal or markdown style links, which are clickable in the time slip view.
 4. Click the `Stop` button to stop the timer.
 5. The time log contains a table with entries for each ongoing or completed timer.
     - Edit the note to change any of the fields.

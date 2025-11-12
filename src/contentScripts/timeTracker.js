@@ -10,12 +10,16 @@ const aggregationSlider = document.getElementById('aggregationSlider');
 let currentAggregationLevel = 1;
 const taskFilter = document.getElementById('taskFilter');
 let currentFilter = '';
+const markdownRegex = /\[(.*?)\]\((.*?)\)/g;
+const urlRegex = /(https?:\/\/.*\/)([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/g;
+
 
 
 let tasks = {};
 let completedTasks = [];
 let uniqueTasks = [];
 let uniqueProjects = [];
+let lastTotalCompletedSeconds = 0;
 let lastStartDate = '';
 let lastEndDate = '';
 
@@ -26,11 +30,29 @@ let currentSortBy = 'duration'; // Default sorting option
 let showDurationColumn = true;
 let showPercentageColumn = true;
 let showEndTimeColumn = true;
+let showTotalInSummary = true;
+let showTotalInActiveTask = false;
 
 function requestInitialData() {
   webviewApi.postMessage({
     name: 'requestInitialData'
   });
+}
+
+function formatLinksAsHTML(unformatted) {
+  if ( markdownRegex.test(unformatted) ) {
+    return unformatted.replaceAll(markdownRegex, '<a href=$2 target="_blank">$1</a>');
+  } else {
+    return unformatted.replaceAll(urlRegex, '<a href=$1$2 target="_blank">$2</a>');
+  }
+}
+
+function formatLinksAsMarkdown(unformatted) {
+  if ( markdownRegex.test(unformatted) ) {
+    return unformatted;
+  } else {
+    return unformatted.replaceAll(urlRegex, '[$2]($1$2)');
+  }
 }
 
 function formatDuration(seconds) {
@@ -73,18 +95,19 @@ function updateRunningTasksDisplay() {
       const [taskName, projectName] = key.split('|');
       const durationSeconds = Math.floor((now - startTime) / 1000);
       const formattedDuration = formatDuration(durationSeconds);
+      const formattedTotal = showTotalInActiveTask ? ` (${formatDuration(durationSeconds + lastTotalCompletedSeconds)})` : '';
       const formattedStartTime = formatStartTime(startTime);
       return `<div class="running-task">
         <div class="running-task-header">
           <div class="running-task-title-container">
-            <span class="running-task-title">${taskName}</span>
-            <span class="running-task-project">${projectName}</span>
+            <span class="running-task-title">${formatLinksAsHTML(taskName)}</span>
+            <span class="running-task-project">${formatLinksAsHTML(projectName)}</span>
           </div>
           <button class="stopButton" data-task="${taskName}" data-project="${projectName}">Stop</button>
         </div>
         <div class="running-task-info">
           <span class="running-task-start-time">${formattedStartTime}</span>
-          <span class="running-task-duration">${formattedDuration}</span>
+          <span class="running-task-duration">${formattedDuration}${formattedTotal}</span>
         </div>
       </div>`;
     }).join('');
@@ -265,6 +288,8 @@ webviewApi.onMessage(function(event) {
     showDurationColumn = message.showDurationColumn !== undefined ? message.showDurationColumn : true;
     showPercentageColumn = message.showPercentageColumn !== undefined ? message.showPercentageColumn : true;
     showEndTimeColumn = message.showEndTimeColumn !== undefined ? message.showEndTimeColumn : true;
+    showTotalInSummary = message.showTotalInSummary !== undefined ? message.showTotalInSummary : true;
+    showTotalInActiveTask = message.showTotalInActiveTask !== undefined ? message.showTotalInActiveTask : false;
     
     // NOW update the displays with the correct settings
     updateRunningTasksDisplay();
@@ -308,7 +333,10 @@ webviewApi.onMessage(function(event) {
     showDurationColumn = message.showDurationColumn;
     showPercentageColumn = message.showPercentageColumn;
     showEndTimeColumn = message.showEndTimeColumn;
+    showTotalInSummary = message.showTotalInSummary;
+    showTotalInActiveTask = message.showTotalInActiveTask;
     updateCompletedTasksDisplay();
+    updateRunningTasksDisplay();
 
   } else if (message.name === 'requestSummaryCSV') {
     const csvContent = completedTasksDiv.getAttribute('data-csv-content');
@@ -452,13 +480,14 @@ function buildTableHeader(aggregationLevel, showBothColumns) {
 
 function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuration, formattedEndTime, percentage) {
   const { name, originalTask, originalProject } = task;
+  // Normal URL replacement and markdown replacement collide. (?<!\() doesn't seem to work as addition on normal regex.
   let rowHtml = '<tr>';
   
   if (aggregationLevel === 1) {
-    rowHtml += `<td>${originalTask}</td>`;
-    rowHtml += `<td>${originalProject}</td>`;
+    rowHtml += `<td>${formatLinksAsHTML(originalTask)}</td>`;
+    rowHtml += `<td>${formatLinksAsHTML(originalProject)}</td>`;
   } else if (aggregationLevel === 2) {
-    rowHtml += `<td>${name}</td>`;
+    rowHtml += `<td>${formatLinksAsHTML(name)}</td>`;
   } else {
     rowHtml += `<td>${selectedNoteName || 'No note selected'}</td>`;
   }
@@ -521,7 +550,7 @@ function buildTableRow(task, aggregationLevel, showBothColumns, formattedDuratio
     }
   }
 
-  if (aggregationLevel === 1) {
+  if (aggregationLevel === 1 && formattedEndTime !== '') {
     rowHtml += `<td style="word-wrap: break-word"><button class="startButton" data-task="${originalTask}" data-project="${originalProject}">▶</button></td>`;
   }
   
@@ -580,9 +609,9 @@ function buildCsvRow(task, aggregationLevel, formattedDuration, csvFormattedEndT
   let csvRow = '';
   
   if (aggregationLevel === 1) {
-    csvRow = `${originalTask},${originalProject}`;
+    csvRow = `${formatLinksAsMarkdown(originalTask)},${formatLinksAsMarkdown(originalProject)}`;
   } else if (aggregationLevel === 2) {
-    csvRow = name;
+    csvRow = formatLinksAsMarkdown(name);
   } else {
     csvRow = selectedNoteName || 'No note selected';
   }
@@ -654,6 +683,7 @@ function updateCompletedTasksDisplay() {
     
     // Calculate total duration for percentage calculations
     const totalDuration = aggregatedTasks.reduce((sum, task) => sum + task.duration, 0);
+    lastTotalCompletedSeconds = totalDuration / 1000;
     
     const timeTrackerWidth = document.getElementById('timeTracker').offsetWidth;
     const showBothColumns = timeTrackerWidth > 340;  // in pixels
@@ -676,7 +706,13 @@ function updateCompletedTasksDisplay() {
       csvContent += buildCsvRow(task, currentAggregationLevel, formattedDuration, csvFormattedEndTime, percentage);
       tasksHtml += buildTableRow(task, currentAggregationLevel, showBothColumns, formattedDuration, formattedEndTime, percentage);
     });
-    
+    if (currentAggregationLevel !== 3 && showDurationColumn && showTotalInSummary) {
+      const formattedDuration = formatDuration(Math.floor(totalDuration / 1000));
+      let task = {name: 'Total', originalTask: '', originalProject: 'Total'};
+      csvContent += buildCsvRow(task, currentAggregationLevel, formattedDuration, '', 100);
+      tasksHtml += buildTableRow(task, currentAggregationLevel, showBothColumns, formattedDuration, '', 100);
+    }
+
     tasksHtml += '</table>';
     aggregationLevelDiv.classList.remove('hidden');
   } else {
