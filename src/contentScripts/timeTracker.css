@@ -20,6 +20,10 @@ body {
     max-height: calc(100vh - 20px); /* Adjust if needed */
 }
 
+#timeTracker a {
+    color: var(--joplin-url-color);
+}
+
 .input-group, .note-selector-group {
     display: flex;
     gap: 5px;
