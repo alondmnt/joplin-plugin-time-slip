@@ -1,7 +1,21 @@
+# [v1.2.0](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.2.0)
+*Released on 2025-11-13T06:22:45Z*
+
+- added: setting: Show total time in summary table (#5 by @patrickvbe)
+- added: setting: Show total next to active task (#5 by @patrickvbe)
+- added: setting: Only one active task (#5 by @patrickvbe)
+    - when enabled, starting a new task will automatically stop the currently running task
+- added: task and project can contain normal or markdown style links, which are clickable in the time slip view (#5 by @patrickvbe)
+
+<img width="516" height="390" alt="image" src="https://github.com/user-attachments/assets/79fc75a3-3094-4e98-8d1e-5b36f720b465" />
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-time-slip/compare/v1.1.0...v1.2.0
+
+---
+
 # [v1.1.0](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.1.0)
 *Released on 2025-08-13T11:16:00Z*
 
-- removed: redundant task scanning after setting date range in index.ts
 - added: percentage calculations for task durations
 - added: completed tasks column visibility settings
 - added: set cursor position when updating the editor
@@ -9,6 +23,7 @@
 - improved: autocomplete dropdowns refresh
 - improved: init sequence logic
 - improved: change editor update fail message from error to debug
+- improved: remove redundant task scanning after setting date range
 - fixed: panel re-init after hide/show
 
 **Full Changelog**: https://github.com/alondmnt/joplin-plugin-time-slip/compare/v1.0.3...v1.1.0
