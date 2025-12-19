@@ -1,6 +1,6 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
-import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask } from './settings';
+import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask, getIncludeTimezone } from './settings';
 import debounce = require('lodash.debounce');
 
 interface FieldIndices {
@@ -460,12 +460,13 @@ export class TaskManager {
         updatedBody = this.defaultHeader;
       }
 
+      const includeTimezone = await getIncludeTimezone();
       const maxIndex = Math.max(...Object.values(this.fieldIndices));
       const newEntry = new Array(maxIndex + 1).fill('');
       newEntry[this.fieldIndices.project] = project;
       newEntry[this.fieldIndices.taskName] = taskName;
       newEntry[this.fieldIndices.startDate] = formatDate(startTime);
-      newEntry[this.fieldIndices.startTime] = formatTime(startTime);
+      newEntry[this.fieldIndices.startTime] = formatTime(startTime, includeTimezone);
       if (this.logSortOrder === 'ascending') {
         updatedBody += '\n' + newEntry.join(',');
 
@@ -506,23 +507,25 @@ export class TaskManager {
     const lines = note.body.split('\n');
     note = clearNoteReferences(note);
     const startDate = formatDate(new Date(startTime));
-    const startTimeFormatted = formatTime(new Date(startTime));
-    
+    const startTimeFormatted = formatTime(new Date(startTime)); // Base time without TZ for matching
+
     // Find the last matching open task entry
+    // Use startsWith for time comparison to handle timezone suffix variations
     const lineIndex = lines.findIndex(line => {
       const fields = line.split(',');
       return fields[this.fieldIndices.project] === project &&
-             fields[this.fieldIndices.taskName] === taskName && 
+             fields[this.fieldIndices.taskName] === taskName &&
              fields[this.fieldIndices.startDate] === startDate &&
-             fields[this.fieldIndices.startTime] === startTimeFormatted &&
+             fields[this.fieldIndices.startTime]?.startsWith(startTimeFormatted) &&
              !fields[this.fieldIndices.endDate] && // Ensure end date is empty
              !fields[this.fieldIndices.endTime]; // Ensure end time is empty
     });
 
     if (lineIndex !== -1) {
+      const includeTimezone = await getIncludeTimezone();
       const fields = lines[lineIndex].split(',');
       fields[this.fieldIndices.endDate] = formatDate(endTime);
-      fields[this.fieldIndices.endTime] = formatTime(endTime);
+      fields[this.fieldIndices.endTime] = formatTime(endTime, includeTimezone);
       fields[this.fieldIndices.duration] = formatDuration(duration);
       lines[lineIndex] = fields.join(',');
       const updatedBody = lines.join('\n');

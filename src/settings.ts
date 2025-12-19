@@ -82,6 +82,14 @@ export async function registerSettings() {
       label: 'Auto-sort time logs',
       description: 'Automatically sort tasks in time log notes based on start time',
     },
+    'timeslip.includeTimezone': {
+      value: true,
+      type: SettingItemType.Bool,
+      section: 'timeslip',
+      public: true,
+      label: 'Include timezone in timestamps',
+      description: 'Add timezone offset to logged times (e.g., 10:30:45+01:00). Useful for DST and timezone changes.',
+    },
     'timeslip.showDurationColumn': {
       value: true,
       type: SettingItemType.Bool,
@@ -226,4 +234,8 @@ export async function getShowTotalInActiveTask(): Promise<boolean> {
 
 export async function getOnlyOneActiveTask(): Promise<boolean> {
   return await joplin.settings.value('timeslip.onlyOneActiveTask');
+}
+
+export async function getIncludeTimezone(): Promise<boolean> {
+  return await joplin.settings.value('timeslip.includeTimezone');
 }
