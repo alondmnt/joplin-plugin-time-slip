@@ -1,3 +1,10 @@
+# [v1.3.0](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.3.0)
+*Released on 2025-12-19T01:47:32Z*
+
+- added: timezone option for time logs (default on) (closes [#6](https://github.com/alondmnt/joplin-plugin-time-slip/issues/6))
+
+---
+
 # [v1.2.0](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.2.0)
 *Released on 2025-11-13T06:22:45Z*
 
