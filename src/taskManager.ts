@@ -14,7 +14,7 @@ interface FieldIndices {
 }
 
 interface ScanResult {
-  openTasks: { [key: string]: { startTime: number; project: string } };
+  openTasks: { [key: string]: { startTime: number; project: string; startDateStr: string; startTimeStr: string } };
   completedTasks: { [key: string]: { taskName: string; project: string; duration: number; startTime: number; endTime: number } };
   tasksSet: Set<string>;
   projectsSet: Set<string>;
@@ -26,7 +26,7 @@ interface ScanResult {
 }
 
 export class TaskManager {
-  private tasks: { [key: string]: { startTime: number; project: string } } = {};
+  private tasks: { [key: string]: { startTime: number; project: string; startDateStr: string; startTimeStr: string } } = {};
   private joplin: any;
   private panel: string;
   private noteId: string;
@@ -163,7 +163,7 @@ export class TaskManager {
   }
 
   private processNoteLines(lines: string[]): ScanResult {
-    const openTasks: { [key: string]: { startTime: number; project: string } } = {};
+    const openTasks: { [key: string]: { startTime: number; project: string; startDateStr: string; startTimeStr: string } } = {};
     const completedTasks: { [key: string]: { taskName: string; project: string; duration: number; startTime: number; endTime: number } } = {};
     const tasksSet = new Set<string>();
     const projectsSet = new Set<string>();
@@ -239,7 +239,12 @@ export class TaskManager {
         } else {
           // Open task
           const taskKey = this.getTaskKey(taskName, project);
-          openTasks[taskKey] = { startTime: startDateTime.getTime(), project };
+          openTasks[taskKey] = {
+            startTime: startDateTime.getTime(),
+            project,
+            startDateStr: startDateStr,
+            startTimeStr: startTimeStr,
+          };
         }
 
         // Push to sortableTasks after processing the entire line
@@ -449,7 +454,13 @@ export class TaskManager {
         await this.stopAllTasks();
       }
       const startTime = new Date();
-      this.tasks[taskKey] = { startTime: startTime.getTime(), project };
+      const includeTimezone = await getIncludeTimezone();
+      this.tasks[taskKey] = {
+        startTime: startTime.getTime(),
+        project,
+        startDateStr: formatDate(startTime),
+        startTimeStr: formatTime(startTime, includeTimezone),
+      };
       this.updateRunningTasks();
 
       let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
@@ -460,13 +471,12 @@ export class TaskManager {
         updatedBody = this.defaultHeader;
       }
 
-      const includeTimezone = await getIncludeTimezone();
       const maxIndex = Math.max(...Object.values(this.fieldIndices));
       const newEntry = new Array(maxIndex + 1).fill('');
       newEntry[this.fieldIndices.project] = project;
       newEntry[this.fieldIndices.taskName] = taskName;
-      newEntry[this.fieldIndices.startDate] = formatDate(startTime);
-      newEntry[this.fieldIndices.startTime] = formatTime(startTime, includeTimezone);
+      newEntry[this.fieldIndices.startDate] = this.tasks[taskKey].startDateStr;
+      newEntry[this.fieldIndices.startTime] = this.tasks[taskKey].startTimeStr;
       if (this.logSortOrder === 'ascending') {
         updatedBody += '\n' + newEntry.join(',');
 
@@ -497,7 +507,7 @@ export class TaskManager {
       console.error(`Task "${taskName}" for project "${project}" not found`);
       return;
     }
-    const { startTime } = this.tasks[taskKey];
+    const { startTime, startDateStr, startTimeStr } = this.tasks[taskKey];
     const endTime = new Date();
     const duration = endTime.getTime() - startTime;
     delete this.tasks[taskKey];
@@ -506,19 +516,17 @@ export class TaskManager {
     let note = await this.joplin.data.get(['notes', this.noteId], { fields: ['body'] });
     const lines = note.body.split('\n');
     note = clearNoteReferences(note);
-    const startDate = formatDate(new Date(startTime));
-    const startTimeFormatted = formatTime(new Date(startTime)); // Base time without TZ for matching
 
-    // Find the last matching open task entry
-    // Use startsWith for time comparison to handle timezone suffix variations
+    // Match against the exact strings written to the note at start time,
+    // so that timezone changes between start and stop don't break the lookup
     const lineIndex = lines.findIndex(line => {
       const fields = line.split(',');
       return fields[this.fieldIndices.project] === project &&
              fields[this.fieldIndices.taskName] === taskName &&
-             fields[this.fieldIndices.startDate] === startDate &&
-             fields[this.fieldIndices.startTime]?.startsWith(startTimeFormatted) &&
-             !fields[this.fieldIndices.endDate] && // Ensure end date is empty
-             !fields[this.fieldIndices.endTime]; // Ensure end time is empty
+             fields[this.fieldIndices.startDate] === startDateStr &&
+             fields[this.fieldIndices.startTime] === startTimeStr &&
+             !fields[this.fieldIndices.endDate] &&
+             !fields[this.fieldIndices.endTime];
     });
 
     if (lineIndex !== -1) {
