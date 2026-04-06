@@ -1,7 +1,18 @@
+# [v1.3.1](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.3.1)
+*Released on 2026-04-06T13:53:59Z*
+
+- fix: store original timezone strings for stop-task matching
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-time-slip/compare/v1.3.0...v1.3.1
+
+---
+
 # [v1.3.0](https://github.com/alondmnt/joplin-plugin-time-slip/releases/tag/v1.3.0)
 *Released on 2025-12-19T01:47:32Z*
 
 - added: timezone option for time logs (default on) (closes [#6](https://github.com/alondmnt/joplin-plugin-time-slip/issues/6))
+
+**Full Changelog**: https://github.com/alondmnt/joplin-plugin-time-slip/compare/v1.2.0...v1.3.0
 
 ---
 
