@@ -1,6 +1,6 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
-import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask, getIncludeTimezone } from './settings';
+import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask, getIncludeTimezone, getUpdateDelay, DEFAULT_UPDATE_DELAY } from './settings';
 import debounce = require('lodash.debounce');
 
 interface FieldIndices {
@@ -57,7 +57,8 @@ export class TaskManager {
     this.noteId = noteId;
     this.noteManager = noteManager;
     this.initializeSortOrder();
-    this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), 4000);
+    this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), DEFAULT_UPDATE_DELAY * 1000);
+    this.updateUpdateDelay();
     this.updateLogSortOrder();
     this.updateEnforceSorting();
     this.updateColumnVisibility();
@@ -640,6 +641,17 @@ export class TaskManager {
       name: 'updateSortOrder',
       sortBy: this.sortBy
     });
+  }
+
+  /**
+   * Rebuild the debounced scan with the delay currently set in the settings.
+   * Any scan already pending is dropped, so callers that change the delay
+   * should scan once themselves if an edit may be waiting.
+   */
+  async updateUpdateDelay() {
+    const delay = await getUpdateDelay();
+    this.debouncedScanAndUpdate.cancel();
+    this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), delay * 1000);
   }
 
   async updateLogSortOrder() {
