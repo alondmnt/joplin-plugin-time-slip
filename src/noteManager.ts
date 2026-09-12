@@ -21,14 +21,32 @@ export class NoteManager {
     this.noteId = noteId;
   }
 
+  /**
+   * Write the corrected log back to the note.
+   *
+   * When the note is open, the write goes through the editor rather than the
+   * database. Writing to the database first makes Joplin rebuild the editor,
+   * after which every editor command fails and the cursor and focus are lost
+   * (see #10), so the order here is load-bearing rather than incidental.
+   * Joplin persists the editor buffer itself, exactly as it does for a typed
+   * edit, so no database write is needed in that case.
+   */
   async updateNote(content: string) {
     let currentNote: any;
     try {
+      currentNote = await this.joplin.workspace.selectedNote();
+      const noteIsOpen = !!(currentNote && currentNote.id === this.noteId);
+
+      if (noteIsOpen && await this.updateEditorPreservingCursor(content)) {
+        return;
+      }
+
       await this.joplin.data.put(['notes', this.noteId], null, { body: content });
 
-      currentNote = await this.joplin.workspace.selectedNote();
-      if (currentNote && currentNote.id === this.noteId) {
-        await this.updateEditorWithCursorPreservation(content);
+      if (noteIsOpen) {
+        // The editor still shows the old body and could not be updated in
+        // place, so replace it wholesale and accept losing the cursor.
+        await this.replaceEditorText(content);
       }
     } catch (error) {
       console.error('Failed to update note:', error);
@@ -41,27 +59,43 @@ export class NoteManager {
     }
   }
 
-  private async updateEditorWithCursorPreservation(content: string) {
+  /**
+   * Replace the open note's content through our CodeMirror 6 content script,
+   * keeping the cursor where the user left it. Returns false when that is not
+   * possible (a CodeMirror 5 editor, or the commands are unreachable), leaving
+   * the caller to fall back to a database write.
+   *
+   * Failures are warned about rather than swallowed: when this stops working,
+   * the symptom is a jumping cursor, which reads as a bug in the wrong place.
+   */
+  private async updateEditorPreservingCursor(content: string): Promise<boolean> {
     try {
-      // Try to get current cursor position using our content script
       const cursorPos = await this.joplin.commands.execute('editor.execCommand', {
         name: 'timeSlip__getCursorPosition'
       });
-      
-      // Try to update content with cursor preservation using our content script
+
       const result = await this.joplin.commands.execute('editor.execCommand', {
         name: 'timeSlip__updateContentWithCursor',
         args: [content, cursorPos]
       });
-      
+
       if (result && result.success) {
-        return; // Success - content updated with cursor preservation
+        return true;
       }
+      console.warn('[TIME-SLIP] Cursor preservation unavailable, editor command returned:', result);
+
     } catch (error) {
-      // CM6 content script not available, fall back to basic setText
+      console.warn('[TIME-SLIP] Cursor preservation unavailable:', error);
     }
-    
-    // Fallback: Basic setText without cursor preservation
+
+    return false;
+  }
+
+  /**
+   * Last resort for an open note: replace the whole document without preserving
+   * the cursor. Only reached when updateEditorPreservingCursor() has failed.
+   */
+  private async replaceEditorText(content: string) {
     try {
       await this.joplin.commands.execute('editor.setText', content);
     } catch (error) {
