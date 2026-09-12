@@ -73,7 +73,7 @@ joplin.plugins.register({
       await taskManager.setNoteId(noteId);
     }
 
-    await joplin.workspace.onSyncComplete(async () => await taskManager.scanNoteAndUpdateTasks());
+    await joplin.workspace.onSyncComplete(async () => await taskManager.refreshTasksFromNote());
     await joplin.workspace.onNoteChange(noteManager.handleNoteChange);
     await joplin.workspace.onNoteSelectionChange(noteManager.handleNoteSelectionChange);
 
@@ -207,7 +207,7 @@ joplin.plugins.register({
       }
       if (event.keys.includes('timeslip.updateDelay')) {
         await taskManager.updateUpdateDelay();
-        await taskManager.scanNoteAndUpdateTasks();
+        await taskManager.refreshTasksFromNote();
       }
       if (event.keys.includes('timeslip.onlyOneActiveTask')) {
         await taskManager.updateOnlyOneActiveTask();
@@ -331,7 +331,7 @@ joplin.plugins.register({
         if (noteId) {
           await taskManager.updateSummarySortOrder(message.sortBy);
           await joplin.settings.setValue('timeslip.summarySortOrder', message.sortBy);
-          await taskManager.scanNoteAndUpdateTasks();
+          await taskManager.refreshTasksFromNote();
         } else {
           await joplin.views.panels.postMessage(panel, { 
             name: 'error', 

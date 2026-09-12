@@ -50,6 +50,8 @@ export class TaskManager {
   private showEndTimeColumn: boolean = true;
   private showTotalInSummary: boolean = true;
   private showTotalInActiveTask: boolean = false;
+  // A deferred note rewrite is armed on debouncedScanAndUpdate; cleared by any writing scan.
+  private rewritePending: boolean = false;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -119,7 +121,33 @@ export class TaskManager {
     return body;
   }
 
+  /**
+   * Scan the note, rewrite it if durations or sorting are stale, and refresh the panel.
+   * Use for actions that expect the note to be corrected now: starting or stopping a
+   * task, the sort command, sort settings. Automatic triggers should use
+   * refreshTasksFromNote() instead, so that rewrites honour the update delay.
+   */
   async scanNoteAndUpdateTasks() {
+    await this.scanAndUpdate(true);
+  }
+
+  /**
+   * Scan the note and refresh the panel without rewriting the note. If a rewrite
+   * turns out to be needed, it is scheduled through the update delay instead.
+   * Use for triggers the user did not ask for: sync, panel reload, switching note
+   * or date range. These must not rewrite the note while it is being edited.
+   */
+  async refreshTasksFromNote() {
+    await this.scanAndUpdate(false);
+  }
+
+  private async scanAndUpdate(writeNote: boolean) {
+    if (writeNote) {
+      // This scan settles any deferred rewrite, whether it writes or finds
+      // nothing to write, so the next stale scan is free to arm a new one.
+      this.rewritePending = false;
+    }
+
     if (!this.noteId) {
       this.updateCompletedTasks([]);
       return;
@@ -128,10 +156,10 @@ export class TaskManager {
     try {
       const scanResult = await this.scanNote();
       if (scanResult) {
-        await this.updateTasksAndNote(scanResult);
+        await this.updateTasksAndNote(scanResult, writeNote);
       }
     } catch (error) {
-      console.error('scanNoteAndUpdateTasks:', error);
+      console.error('scanAndUpdate:', error);
       this.joplin.views.panels.postMessage(this.panel, { 
         name: 'error', 
         message: 'An error occurred while scanning or updating the note. Note ID: ' + this.noteId
@@ -269,7 +297,7 @@ export class TaskManager {
     };
   }
 
-  private async updateTasksAndNote(scanResult: ScanResult) {
+  private async updateTasksAndNote(scanResult: ScanResult, writeNote: boolean) {
     const {
       openTasks,
       completedTasks,
@@ -284,9 +312,18 @@ export class TaskManager {
 
     // Update note content if necessary
     if (!isSorted || durationChanged) {
-      const updatedContent = await this.getUpdatedNoteContent(sortableTasks, unknownTasks, lines, isSorted, durationChanged);
-      if (updatedContent) {
-        await this.noteManager.updateNote(updatedContent);
+      if (writeNote) {
+        const updatedContent = await this.getUpdatedNoteContent(sortableTasks, unknownTasks, lines, isSorted, durationChanged);
+        if (updatedContent) {
+          await this.noteManager.updateNote(updatedContent);
+        }
+      } else if (!this.rewritePending) {
+        // Defer the rewrite rather than interrupting an edit in progress. Arm it
+        // only once: the note stays stale until the rewrite lands, so re-arming on
+        // every read-only scan would let frequent triggers (panel reloads, syncs)
+        // push it out indefinitely. Edits still re-arm it, via handleNoteChange.
+        this.rewritePending = true;
+        this.debouncedScanAndUpdate();
       }
     }
 
@@ -571,7 +608,7 @@ export class TaskManager {
   async getInitialData() {
     // If we have a noteId, ensure we scan it first to get current, properly filtered data
     if (this.noteId) {
-      await this.scanNoteAndUpdateTasks();
+      await this.refreshTasksFromNote();
     }
     
     // Refresh sort order from settings to ensure it's current when panel is re-shown
@@ -598,7 +635,7 @@ export class TaskManager {
 
   async setNoteId(noteId: string) {
     this.noteId = noteId;
-    await this.scanNoteAndUpdateTasks();
+    await this.refreshTasksFromNote();
   }
 
   async setLogNoteTag(tag: string) {
@@ -621,7 +658,7 @@ export class TaskManager {
   async setDateRange(startDate: string | null, endDate: string | null) {
     this.currentStartDate = startDate;
     this.currentEndDate = endDate;
-    await this.scanNoteAndUpdateTasks();
+    await this.refreshTasksFromNote();
   }
 
   async clearTasks() {
@@ -645,12 +682,14 @@ export class TaskManager {
 
   /**
    * Rebuild the debounced scan with the delay currently set in the settings.
-   * Any scan already pending is dropped, so callers that change the delay
-   * should scan once themselves if an edit may be waiting.
+   * Any scan already pending is dropped along with any armed deferred rewrite;
+   * a following refreshTasksFromNote() re-arms it on the new delay if the note
+   * is still stale.
    */
   async updateUpdateDelay() {
     const delay = await getUpdateDelay();
     this.debouncedScanAndUpdate.cancel();
+    this.rewritePending = false;
     this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), delay * 1000);
   }
 
