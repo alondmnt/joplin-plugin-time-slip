@@ -28,22 +28,43 @@ export class NoteManager {
    * the plugin consults (scanNote, startTask, stopTask, exportNote), and
    * startTask re-reads it immediately after writing, so skipping it makes a
    * just-started task vanish from the panel.
-   *
-   * An open editor picks the new body up on its own, because Joplin rebuilds it
-   * in response to the write (#10). We deliberately do not push the text in
-   * ourselves: editor.setText is routed through Joplin's form-note state and
-   * schedules a save of identical content, which costs a second write and an
-   * updated_time bump for every correction.
    */
   async updateNote(content: string) {
     try {
+      const noteIsOpen = await this.isNoteSelected();
       await this.joplin.data.put(['notes', this.noteId], null, { body: content });
+
+      if (noteIsOpen) {
+        await this.replaceEditorText(content);
+      }
     } catch (error) {
       console.error('Failed to update note:', error);
       this.joplin.views.panels.postMessage(this.panel, {
         name: 'error',
         message: 'Failed to update note.'
       });
+    }
+  }
+
+  /**
+   * Push the new body into an open editor.
+   *
+   * Not a no-op, and not free. Joplin routes editor.setText through form-note
+   * state rather than dispatching to the editor, so it schedules a save of
+   * identical content and bumps updated_time. stopTask runs up to three write
+   * cycles, so up to three of these.
+   *
+   * Kept anyway, because it is the only thing that puts the new body into that
+   * form-note state. Writes to an open note still happen (start, stop, the sort
+   * command), and if Joplin's rebuild ever defers to an unsaved buffer, its own
+   * save would put the pre-write body back over a row we had just appended. A
+   * redundant save is a cheaper failure than a lost log entry.
+   */
+  private async replaceEditorText(content: string) {
+    try {
+      await this.joplin.commands.execute('editor.setText', content);
+    } catch (error) {
+      console.debug('[TIME-SLIP] Editor update failed:', error);
     }
   }
 
