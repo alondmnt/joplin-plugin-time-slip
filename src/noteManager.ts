@@ -76,7 +76,7 @@ export class NoteManager {
   }
 
   handleNoteSelectionChange = async () => {
-    await this.taskManager.getLogNotes();
+    await this.taskManager.handleNoteSelectionChange();
   }
 
   async exportNote(): Promise<string> {

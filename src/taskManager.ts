@@ -52,6 +52,9 @@ export class TaskManager {
   private showTotalInActiveTask: boolean = false;
   // A deferred note rewrite is armed on debouncedScanAndUpdate; cleared by any writing scan.
   private rewritePending: boolean = false;
+  // A rewrite the gate dropped because the log note was open. Nothing is armed
+  // for it, so leaving the note is what lets it land; see handleNoteSelectionChange.
+  private rewriteHeldBack: boolean = false;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -163,6 +166,9 @@ export class TaskManager {
     // goes on to do. Leaving the flag set would wedge it true with no timer
     // behind it, and no later trigger could arm a replacement.
     this.rewritePending = false;
+    // Re-decided below from what this scan finds, so that undoing the edit that
+    // made the note stale does not leave us scanning on every note click.
+    this.rewriteHeldBack = false;
     const noteIsOpen = await this.noteManager.isNoteSelected();
     await this.scanAndUpdate(!noteIsOpen, false);
   }
@@ -178,6 +184,7 @@ export class TaskManager {
       // This scan settles any deferred rewrite, whether it writes or finds
       // nothing to write, so the next stale scan is free to arm a new one.
       this.rewritePending = false;
+      this.rewriteHeldBack = false;
     }
 
     if (!this.noteId) {
@@ -356,6 +363,12 @@ export class TaskManager {
         // push it out indefinitely. Edits still re-arm it, via handleNoteChange.
         this.rewritePending = true;
         this.debouncedScanAndUpdate();
+
+      } else if (!mayArm) {
+        // The gate dropped this rewrite: the debounce fired while the user was
+        // in the note. Nothing is armed, so record it, and let leaving the note
+        // be what lets it land.
+        this.rewriteHeldBack = true;
       }
     }
 
@@ -663,6 +676,23 @@ export class TaskManager {
       showTotalInSummary: this.showTotalInSummary,
       showTotalInActiveTask: this.showTotalInActiveTask
     };
+  }
+
+  /**
+   * The user has moved to another note. Joplin note selection does not change
+   * which note the plugin tracks, so this still refers to the log note.
+   *
+   * If the gate dropped a rewrite while they were in it, this is the first
+   * moment it can land, so scan and let the debounce write it with the gate now
+   * open. Otherwise only refresh the note list: ordinary browsing must not parse
+   * the whole log on every click.
+   */
+  async handleNoteSelectionChange() {
+    if (this.rewriteHeldBack) {
+      await this.refreshTasksFromNote();
+    } else {
+      await this.getLogNotes();
+    }
   }
 
   async setNoteId(noteId: string) {
