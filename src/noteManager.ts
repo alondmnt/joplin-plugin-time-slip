@@ -28,13 +28,17 @@ export class NoteManager {
    * the plugin consults (scanNote, startTask, stopTask, exportNote), and
    * startTask re-reads it immediately after writing, so skipping it makes a
    * just-started task vanish from the panel.
+   *
+   * The editor push is decided after that write, not before. editor.setText
+   * takes no note id and lands on whichever editor is active, so a selection
+   * read from before a write that is slow on a large log could put the CSV into
+   * a note the user has since switched to.
    */
   async updateNote(content: string) {
     try {
-      const noteIsOpen = await this.isNoteSelected();
       await this.joplin.data.put(['notes', this.noteId], null, { body: content });
 
-      if (noteIsOpen) {
+      if (await this.isNoteSelected()) {
         await this.replaceEditorText(content);
       }
     } catch (error) {
