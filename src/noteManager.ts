@@ -29,18 +29,15 @@ export class NoteManager {
    * startTask re-reads it immediately after writing, so skipping it makes a
    * just-started task vanish from the panel.
    *
-   * Joplin rebuilds the editor in response to that write, which is how an open
-   * note picks up the new body. replaceEditorText is there for any version that
-   * does not, and is a no-op where the rebuild has already delivered it.
+   * An open editor picks the new body up on its own, because Joplin rebuilds it
+   * in response to the write (#10). We deliberately do not push the text in
+   * ourselves: editor.setText is routed through Joplin's form-note state and
+   * schedules a save of identical content, which costs a second write and an
+   * updated_time bump for every correction.
    */
   async updateNote(content: string) {
     try {
-      const noteIsOpen = await this.isNoteSelected();
       await this.joplin.data.put(['notes', this.noteId], null, { body: content });
-
-      if (noteIsOpen) {
-        await this.replaceEditorText(content);
-      }
     } catch (error) {
       console.error('Failed to update note:', error);
       this.joplin.views.panels.postMessage(this.panel, {
@@ -67,20 +64,6 @@ export class NoteManager {
       return false;
     } finally {
       currentNote = clearNoteReferences(currentNote);
-    }
-  }
-
-  /**
-   * Push the new body into an open editor. Joplin normally does this itself by
-   * rebuilding the editor after the database write, and this command then finds
-   * the text already in place, or no editor to talk to; both are fine. It is
-   * kept for any version or platform where the rebuild does not happen.
-   */
-  private async replaceEditorText(content: string) {
-    try {
-      await this.joplin.commands.execute('editor.setText', content);
-    } catch (error) {
-      console.debug('[TIME-SLIP] Editor update failed:', error);
     }
   }
 
