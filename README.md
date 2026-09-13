@@ -30,6 +30,7 @@ Time Slip is a [Joplin](https://joplinapp.org/) plugin that allows you to track 
     - Import a markdown table by selecting the table and clicking `Tools -> Convert selected table to CSV`.
 6. The panel displays a summary of completed timers.
     - Only entries in the selected date range are displayed.
+    - Entries are filtered by their start time. A timer that runs past midnight belongs to the day it started.
     - Change the aggregation level by selecting task, project, or note.
     - Sort the table by clicking on the column headers.
     - Further filter the table using the search bar.
