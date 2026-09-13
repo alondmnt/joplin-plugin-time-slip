@@ -15,7 +15,8 @@ export default (context: { contentScriptId: string, postMessage: any }) => {
                 return {
                     anchor: mainSelection.anchor,
                     head: mainSelection.head,
-                    empty: mainSelection.empty
+                    empty: mainSelection.empty,
+                    hasFocus: view.hasFocus
                 };
             });
 
@@ -76,30 +77,41 @@ export default (context: { contentScriptId: string, postMessage: any }) => {
                 }
             });
 
-            // Register command to just set cursor position (without content update)
-            codeMirrorWrapper.registerCommand('timeSlip__setCursorPosition', (cursorPos: any) => {
-                const view = codeMirrorWrapper.cm6;
-                
-                try {
-                    if (cursorPos && typeof cursorPos.anchor === 'number') {
-                        const contentLength = view.state.doc.length;
-                        const safeAnchor = Math.min(cursorPos.anchor, contentLength);
-                        const safeHead = cursorPos.head !== undefined ? Math.min(cursorPos.head, contentLength) : safeAnchor;
-                        
-                        const selection = EditorSelection.create([
-                            EditorSelection.range(safeAnchor, safeHead)
-                        ]);
-                        
-                        view.dispatch({ selection });
-                        return { success: true };
+            // Joplin rebuilds the editor when a note changes underneath it, which
+            // is how a Time Slip correction arrives. The plugin cannot call into
+            // an editor that does not exist yet, so the position it captured
+            // before the write is collected here instead, once we are live.
+            try {
+                const pending = await context.postMessage({ kind: 'takePendingCursor' });
+                if (pending && typeof pending.anchor === 'number') {
+                    const view = codeMirrorWrapper.cm6;
+                    const docLength = view.state.doc.length;
+                    const anchor = Math.min(pending.anchor, docLength);
+                    const head = Math.min(
+                        typeof pending.head === 'number' ? pending.head : anchor, docLength);
+
+                    // Restoring the position alone is not enough: the rebuilt
+                    // editor is unfocused, so the caret does not render and
+                    // typing goes nowhere. Only take focus back if the editor
+                    // held it when the position was captured, so this cannot
+                    // pull the user out of the panel or another note.
+                    // document.hasFocus() keeps this from yanking the user back
+                    // if they left for the panel or another window during the
+                    // write and rebuild, which is not instant on a large log.
+                    const restoreFocus = pending.hasFocus === true && document.hasFocus();
+
+                    view.dispatch({
+                        selection: EditorSelection.create([EditorSelection.range(anchor, head)]),
+                        scrollIntoView: restoreFocus
+                    });
+
+                    if (restoreFocus) {
+                        view.focus();
                     }
-                } catch (error) {
-                    console.error('[TIME-SLIP] Error setting cursor position:', error);
-                    return { success: false, error: error.message };
                 }
-                
-                return { success: false, error: 'Invalid cursor position' };
-            });
+            } catch (error) {
+                console.warn('[TIME-SLIP] Could not restore the cursor after the editor reloaded:', error);
+            }
         },
     };
 };
