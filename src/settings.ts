@@ -80,7 +80,7 @@ export async function registerSettings() {
       section: 'timeslip',
       public: true,
       label: 'Auto-sort time logs',
-      description: 'Automatically sort tasks in time log notes based on start time',
+      description: 'Automatically sort tasks in time log notes based on start time. Sorting and duration corrections are written once you move on from the note, so they never interrupt editing',
     },
     'timeslip.includeTimezone': {
       value: true,

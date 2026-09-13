@@ -714,6 +714,10 @@ export class TaskManager {
   }
 
   async setNoteId(noteId: string) {
+    // Any rewrite held back belonged to the note we are leaving, and nothing
+    // here can flush it. Dropping it stops the next note click scanning the
+    // note we have arrived at on the old note's behalf.
+    this.rewriteHeldBack = false;
     this.noteId = noteId;
     await this.refreshTasksFromNote();
   }

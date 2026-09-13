@@ -63,6 +63,10 @@ export class NoteManager {
    * command), and if Joplin's rebuild ever defers to an unsaved buffer, its own
    * save would put the pre-write body back over a row we had just appended. A
    * redundant save is a cheaper failure than a lost log entry.
+   *
+   * Note this is a live path on desktop now. Before the cursor work was removed
+   * it was unreachable wherever the content script was alive on CodeMirror 6,
+   * because the in-place update handled those editors instead.
    */
   private async replaceEditorText(content: string) {
     try {
@@ -75,9 +79,16 @@ export class NoteManager {
   /**
    * Is the log note the one currently selected in the editor?
    *
-   * Returns false on any error. Every caller reads false as "go ahead and
-   * write", so a failure here degrades to the unconditional rewrites we had
-   * before, rather than silently suppressing corrections for the session.
+   * False means "not certainly the log note", and the two callers act on that
+   * in opposite directions. The gate in TaskManager writes the note, which is
+   * the unconditional behaviour we had before and is always safe. updateNote
+   * skips the editor push, because editor.setText lands on whatever editor is
+   * active and pushing into one we are unsure about would overwrite an
+   * unrelated note.
+   *
+   * So an error here costs a missed editor refresh rather than a wrong write.
+   * That is the cheaper failure, but it is not the same direction in both
+   * places, and it is not "degrades to writing" as this once claimed.
    */
   async isNoteSelected(): Promise<boolean> {
     let currentNote: any;
