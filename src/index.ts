@@ -17,7 +17,6 @@ joplin.plugins.register({
       './contentScripts/cursorPreservation.js'
     );
 
-
     const panel = await joplin.views.panels.create('timeSlipPanel');
 
     await joplin.views.panels.setHtml(panel, `

@@ -61,10 +61,13 @@ export class NoteManager {
       currentNote = await this.joplin.workspace.selectedNote();
       const noteIsOpen = !!(currentNote && currentNote.id === this.noteId);
 
+      // Always overwrite: startTask and stopTask each run two cycles in quick
+      // succession, and the second may land inside a rebuild and read nothing.
+      // Leaving the previous position set would restore an edit-old cursor.
       const cursorPos = noteIsOpen ? await this.readCursorPosition() : null;
-      if (cursorPos) {
-        this.pendingCursor = { noteId: this.noteId, ...cursorPos, at: Date.now() };
-      }
+      this.pendingCursor = cursorPos
+        ? { noteId: this.noteId, ...cursorPos, at: Date.now() }
+        : null;
 
       await this.joplin.data.put(['notes', this.noteId], null, { body: content });
 
