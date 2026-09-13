@@ -5,6 +5,13 @@ import { clearNoteReferences } from './utils';
 // we read it from. Beyond this the reload is not ours and the position is stale.
 const PENDING_CURSOR_TIMEOUT_MS = 10000;
 
+/** Where the caret was, and whether the editor was the focused element. */
+interface CursorPosition {
+  anchor: number;
+  head: number;
+  hasFocus: boolean;
+}
+
 export class NoteManager {
   private joplin: any;
   private noteId: string;
@@ -12,7 +19,9 @@ export class NoteManager {
   private panel: string;
   // Set aside when the database write is about to rebuild the editor, and
   // collected by the content script once the replacement editor loads.
-  private pendingCursor: { noteId: string, anchor: number, head: number, at: number } | null = null;
+  private pendingCursor: {
+    noteId: string, anchor: number, head: number, hasFocus: boolean, at: number
+  } | null = null;
 
   constructor(joplin: any, noteId: string, panel: string) {
     this.joplin = joplin;
@@ -85,13 +94,17 @@ export class NoteManager {
    * on editors without our content script, and on any editor that has already
    * been torn down.
    */
-  private async readCursorPosition(): Promise<{ anchor: number, head: number } | null> {
+  private async readCursorPosition(): Promise<CursorPosition | null> {
     try {
       const pos = await this.joplin.commands.execute('editor.execCommand', {
         name: 'timeSlip__getCursorPosition'
       });
       if (pos && typeof pos.anchor === 'number') {
-        return { anchor: pos.anchor, head: typeof pos.head === 'number' ? pos.head : pos.anchor };
+        return {
+          anchor: pos.anchor,
+          head: typeof pos.head === 'number' ? pos.head : pos.anchor,
+          hasFocus: pos.hasFocus === true
+        };
       }
     } catch (error) {
       console.warn('[TIME-SLIP] Could not read the cursor position:', error);
@@ -105,7 +118,7 @@ export class NoteManager {
    * position came from, so a stale position cannot be applied to another note or
    * long after the write that produced it.
    */
-  async takePendingCursor(): Promise<{ anchor: number, head: number } | null> {
+  async takePendingCursor(): Promise<CursorPosition | null> {
     const pending = this.pendingCursor;
     this.pendingCursor = null;
 
@@ -115,7 +128,9 @@ export class NoteManager {
     const stillOnThatNote = !!(currentNote && currentNote.id === pending.noteId);
     currentNote = clearNoteReferences(currentNote);
 
-    return stillOnThatNote ? { anchor: pending.anchor, head: pending.head } : null;
+    return stillOnThatNote
+      ? { anchor: pending.anchor, head: pending.head, hasFocus: pending.hasFocus }
+      : null;
   }
 
   /**
@@ -128,7 +143,7 @@ export class NoteManager {
    */
   private async updateEditorPreservingCursor(
     content: string,
-    cursorPos: { anchor: number, head: number } | null
+    cursorPos: CursorPosition | null
   ): Promise<boolean> {
     try {
       const result = await this.joplin.commands.execute('editor.execCommand', {

@@ -15,7 +15,8 @@ export default (context: { contentScriptId: string, postMessage: any }) => {
                 return {
                     anchor: mainSelection.anchor,
                     head: mainSelection.head,
-                    empty: mainSelection.empty
+                    empty: mainSelection.empty,
+                    hasFocus: view.hasFocus
                 };
             });
 
@@ -113,9 +114,22 @@ export default (context: { contentScriptId: string, postMessage: any }) => {
                     const anchor = Math.min(pending.anchor, docLength);
                     const head = Math.min(
                         typeof pending.head === 'number' ? pending.head : anchor, docLength);
+
+                    // Restoring the position alone is not enough: the rebuilt
+                    // editor is unfocused, so the caret does not render and
+                    // typing goes nowhere. Only take focus back if the editor
+                    // held it when the position was captured, so this cannot
+                    // pull the user out of the panel or another note.
+                    const restoreFocus = pending.hasFocus === true;
+
                     view.dispatch({
-                        selection: EditorSelection.create([EditorSelection.range(anchor, head)])
+                        selection: EditorSelection.create([EditorSelection.range(anchor, head)]),
+                        scrollIntoView: restoreFocus
                     });
+
+                    if (restoreFocus) {
+                        view.focus();
+                    }
                 }
             } catch (error) {
                 console.warn('[TIME-SLIP] Could not restore the cursor after the editor reloaded:', error);
