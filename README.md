@@ -25,7 +25,7 @@ Time Slip is a [Joplin](https://joplinapp.org/) plugin that allows you to track 
 4. Click the `Stop` button to stop the timer.
 5. The time log contains a table with entries for each ongoing or completed timer.
     - Edit the note to change any of the fields.
-    - Select the default order of the log entries in the settings. You may also activate auto-sorting, so that edited entries are automatically resorted (or resort using `Tools -> Sort Time Slip log`).
+    - Select the default order of the log entries in the settings. You may also activate auto-sorting, so that edited entries are resorted once you move on from the note (or resort it straight away using `Tools -> Sort Time Slip log`).
     - Insert the table into a note (or replace selection) using `Note -> Insert Time Slip markdown log`.
     - Import a markdown table by selecting the table and clicking `Tools -> Convert selected table to CSV`.
 6. The panel displays a summary of completed timers.

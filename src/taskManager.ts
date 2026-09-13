@@ -1,7 +1,13 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
-import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask, getIncludeTimezone, getUpdateDelay, DEFAULT_UPDATE_DELAY } from './settings';
+import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask, getIncludeTimezone } from './settings';
 import debounce = require('lodash.debounce');
+
+// How long to wait after an edit before re-reading the log. It bounds how often
+// a large note is parsed while you type, and how soon a correction lands once
+// you leave it. Not a setting: the reason to lengthen it was that rewrites
+// interrupted typing, and they no longer happen while the note is open.
+const UPDATE_DELAY_MS = 4000;
 
 interface FieldIndices {
   project: number;
@@ -52,6 +58,9 @@ export class TaskManager {
   private showTotalInActiveTask: boolean = false;
   // A deferred note rewrite is armed on debouncedScanAndUpdate; cleared by any writing scan.
   private rewritePending: boolean = false;
+  // A rewrite the gate dropped because the log note was open. Nothing is armed
+  // for it, so leaving the note is what lets it land; see handleNoteSelectionChange.
+  private rewriteHeldBack: boolean = false;
 
   constructor(joplin: any, panel: string, noteId: string, noteManager: NoteManager) {
     this.joplin = joplin;
@@ -59,8 +68,7 @@ export class TaskManager {
     this.noteId = noteId;
     this.noteManager = noteManager;
     this.initializeSortOrder();
-    this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), DEFAULT_UPDATE_DELAY * 1000);
-    this.updateUpdateDelay();
+    this.debouncedScanAndUpdate = debounce(this.rewriteUnlessEditing.bind(this), UPDATE_DELAY_MS);
     this.updateLogSortOrder();
     this.updateEnforceSorting();
     this.updateColumnVisibility();
@@ -124,8 +132,11 @@ export class TaskManager {
   /**
    * Scan the note, rewrite it if durations or sorting are stale, and refresh the panel.
    * Use for actions that expect the note to be corrected now: starting or stopping a
-   * task, the sort command, sort settings. Automatic triggers should use
-   * refreshTasksFromNote() instead, so that rewrites honour the update delay.
+   * task, the sort command, sort settings. The rewrite is unconditional, including
+   * while the note is open, because the user asked for it: the sort command would
+   * otherwise do nothing in the usual case of sorting the note you are looking at.
+   * Automatic triggers should use refreshTasksFromNote() instead, so that rewrites
+   * honour the update delay and leave an open note alone.
    */
   async scanNoteAndUpdateTasks() {
     await this.scanAndUpdate(true);
@@ -141,11 +152,44 @@ export class TaskManager {
     await this.scanAndUpdate(false);
   }
 
-  private async scanAndUpdate(writeNote: boolean) {
+  /**
+   * The automatic rewrite, and the only thing the debounce drives.
+   *
+   * Rewriting the note makes Joplin rebuild the editor, and a rebuilt editor
+   * starts from a fresh state with no undo history. That is too much to charge
+   * for correcting a derived field, so the rewrite is held back while the note
+   * is open: the times it is derived from are already on disk, the panel is
+   * computed from this same scan and stays accurate, and only the note's own
+   * duration column lags until a later trigger finds the user elsewhere.
+   *
+   * Holding back arms nothing, so this cannot become a poll over a large log.
+   * Editing re-arms it through handleNoteChange, and sync, a panel reload or
+   * starting a task all arm a fresh one when they find the note stale.
+   */
+  private async rewriteUnlessEditing() {
+    // The debounce has fired, so nothing is pending any more whatever this scan
+    // goes on to do. Leaving the flag set would wedge it true with no timer
+    // behind it, and no later trigger could arm a replacement.
+    this.rewritePending = false;
+    // Re-decided below from what this scan finds, so that undoing the edit that
+    // made the note stale does not leave us scanning on every note click.
+    this.rewriteHeldBack = false;
+    const noteIsOpen = await this.noteManager.isNoteSelected();
+    await this.scanAndUpdate(!noteIsOpen, false);
+  }
+
+  /**
+   * @param writeNote correct the note now, rather than only refreshing the panel
+   * @param mayArm may defer a needed rewrite to the debounce. False for scans
+   *   the debounce itself drove: those have had their turn, and re-arming from
+   *   inside one is what would turn a held-back rewrite into a poll.
+   */
+  private async scanAndUpdate(writeNote: boolean, mayArm: boolean = true) {
     if (writeNote) {
       // This scan settles any deferred rewrite, whether it writes or finds
       // nothing to write, so the next stale scan is free to arm a new one.
       this.rewritePending = false;
+      this.rewriteHeldBack = false;
     }
 
     if (!this.noteId) {
@@ -156,7 +200,7 @@ export class TaskManager {
     try {
       const scanResult = await this.scanNote();
       if (scanResult) {
-        await this.updateTasksAndNote(scanResult, writeNote);
+        await this.updateTasksAndNote(scanResult, writeNote, mayArm);
       }
     } catch (error) {
       console.error('scanAndUpdate:', error);
@@ -297,7 +341,7 @@ export class TaskManager {
     };
   }
 
-  private async updateTasksAndNote(scanResult: ScanResult, writeNote: boolean) {
+  private async updateTasksAndNote(scanResult: ScanResult, writeNote: boolean, mayArm: boolean = true) {
     const {
       openTasks,
       completedTasks,
@@ -317,13 +361,19 @@ export class TaskManager {
         if (updatedContent) {
           await this.noteManager.updateNote(updatedContent);
         }
-      } else if (!this.rewritePending) {
+      } else if (mayArm && !this.rewritePending) {
         // Defer the rewrite rather than interrupting an edit in progress. Arm it
         // only once: the note stays stale until the rewrite lands, so re-arming on
         // every read-only scan would let frequent triggers (panel reloads, syncs)
         // push it out indefinitely. Edits still re-arm it, via handleNoteChange.
         this.rewritePending = true;
         this.debouncedScanAndUpdate();
+
+      } else if (!mayArm) {
+        // The gate dropped this rewrite: the debounce fired while the user was
+        // in the note. Nothing is armed, so record it, and let leaving the note
+        // be what lets it land.
+        this.rewriteHeldBack = true;
       }
     }
 
@@ -633,7 +683,41 @@ export class TaskManager {
     };
   }
 
+  /**
+   * The user has moved to another note. Joplin note selection does not change
+   * which note the plugin tracks, so this still refers to the log note.
+   *
+   * If the gate dropped a rewrite while they were in it, this is the first
+   * moment it can land, so scan and let the debounce write it with the gate now
+   * open. Ordinary browsing skips that scan: it must not parse the whole log on
+   * every click.
+   *
+   * The flag is spent whether or not the scan succeeds. A scan that cannot run
+   * (no note, a deleted one, an unparseable header) must not leave it set, or
+   * every later note click retries a failing scan and posts an error. Losing
+   * the flush costs nothing that is not recoverable: sync, start, stop and the
+   * sort paths all still correct the note.
+   *
+   * The note list is refreshed either way, as it was before the flush existed.
+   * A failed scan never reaches the refresh inside updateTasksAndNote, and the
+   * note picker going stale for the session is worse than one extra lookup on
+   * the rare navigation that flushes.
+   */
+  async handleNoteSelectionChange() {
+    const flushHeldBack = this.rewriteHeldBack && !!this.noteId;
+    this.rewriteHeldBack = false;
+
+    if (flushHeldBack) {
+      await this.refreshTasksFromNote();
+    }
+    await this.getLogNotes();
+  }
+
   async setNoteId(noteId: string) {
+    // Any rewrite held back belonged to the note we are leaving, and nothing
+    // here can flush it. Dropping it stops the next note click scanning the
+    // note we have arrived at on the old note's behalf.
+    this.rewriteHeldBack = false;
     this.noteId = noteId;
     await this.refreshTasksFromNote();
   }
@@ -678,19 +762,6 @@ export class TaskManager {
       name: 'updateSortOrder',
       sortBy: this.sortBy
     });
-  }
-
-  /**
-   * Rebuild the debounced scan with the delay currently set in the settings.
-   * Any scan already pending is dropped along with any armed deferred rewrite;
-   * a following refreshTasksFromNote() re-arms it on the new delay if the note
-   * is still stale.
-   */
-  async updateUpdateDelay() {
-    const delay = await getUpdateDelay();
-    this.debouncedScanAndUpdate.cancel();
-    this.rewritePending = false;
-    this.debouncedScanAndUpdate = debounce(this.scanNoteAndUpdateTasks.bind(this), delay * 1000);
   }
 
   async updateLogSortOrder() {

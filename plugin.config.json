@@ -1,3 +1,3 @@
 {
-	"extraScripts": ["contentScripts/cursorPreservation.ts"]
+	"extraScripts": []
 }
