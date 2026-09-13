@@ -19,6 +19,10 @@ export class NoteManager {
   private panel: string;
   // Set aside when the database write is about to rebuild the editor, and
   // collected by the content script once the replacement editor loads.
+  // Cursor preservation either works or it does not, and it does not recover
+  // mid-session. Warn on the first failure only: updateNote runs on every
+  // correction, and Joplin keeps plugin console output in its own log.
+  private cursorWarningIssued: boolean = false;
   private pendingCursor: {
     noteId: string, anchor: number, head: number, hasFocus: boolean, at: number
   } | null = null;
@@ -70,11 +74,11 @@ export class NoteManager {
           // Leaving it set would let an unrelated reload consume the position.
           this.pendingCursor = null;
 
-        } else {
-          // Either the editor was rebuilt by the write, in which case it already
-          // shows the new body and only the cursor is outstanding, or there is no
-          // content script and it still shows the old body. Only the second needs
-          // the text replacing, and the first makes this a silent no-op.
+        } else if (!cursorPos) {
+          // No content script, so nothing will restore the editor for us and it
+          // still shows the old body. Where a position was captured the script
+          // is alive, the rebuilt editor already has the new body from the
+          // database, and replacing the text here would only race the restore.
           await this.replaceEditorText(content);
         }
       }
@@ -106,10 +110,23 @@ export class NoteManager {
           hasFocus: pos.hasFocus === true
         };
       }
+      this.warnOnce('cursor position unavailable, the editor will jump on corrections');
+
     } catch (error) {
-      console.warn('[TIME-SLIP] Could not read the cursor position:', error);
+      this.warnOnce('cursor position unreadable, the editor will jump on corrections', error);
     }
     return null;
+  }
+
+  /**
+   * Report a cursor-preservation problem once per session. Every caller here is
+   * on the per-correction path, so an unconditional warning would grow Joplin's
+   * log without telling the reader anything the first one did not.
+   */
+  private warnOnce(message: string, detail?: any) {
+    if (this.cursorWarningIssued) { return; }
+    this.cursorWarningIssued = true;
+    console.warn(`[TIME-SLIP] ${message} (reported once per session)`, detail ?? '');
   }
 
   /**
@@ -153,14 +170,14 @@ export class NoteManager {
 
       if (result && result.success) {
         if (result.cursorPreserved === false) {
-          console.warn('[TIME-SLIP] Content updated but the cursor could not be preserved');
+          this.warnOnce('content updated but the cursor could not be preserved');
         }
         return true;
       }
-      console.warn('[TIME-SLIP] Cursor preservation unavailable, editor command returned:', result);
-
     } catch (error) {
-      console.warn('[TIME-SLIP] Cursor preservation unavailable:', error);
+      // Expected wherever the database write has already rebuilt the editor,
+      // which is every correction on Joplin 3.7. Not a failure: the position
+      // was captured beforehand and the content script restores it on reload.
     }
 
     return false;
