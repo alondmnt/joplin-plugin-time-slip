@@ -1,8 +1,16 @@
 import { EditorSelection } from '@codemirror/state';
 
+// Deprecated, and no longer wired to anything.
+//
+// These commands existed to carry the caret across the editor rebuild that a
+// Time Slip correction triggers. Since corrections no longer run while the note
+// is open (#9), there is no caret to carry: the writes that remain come from the
+// panel, where the editor does not hold focus. The script is still registered so
+// the commands stay available, but nothing in the plugin calls them.
+
 export default (context: { contentScriptId: string, postMessage: any }) => {
     return {
-        plugin: async (codeMirrorWrapper: any) => {
+        plugin: (codeMirrorWrapper: any) => {
             // Exit if not a CodeMirror 6 editor
             if (!codeMirrorWrapper.cm6) return;
 
@@ -76,42 +84,6 @@ export default (context: { contentScriptId: string, postMessage: any }) => {
                     }
                 }
             });
-
-            // Joplin rebuilds the editor when a note changes underneath it, which
-            // is how a Time Slip correction arrives. The plugin cannot call into
-            // an editor that does not exist yet, so the position it captured
-            // before the write is collected here instead, once we are live.
-            try {
-                const pending = await context.postMessage({ kind: 'takePendingCursor' });
-                if (pending && typeof pending.anchor === 'number') {
-                    const view = codeMirrorWrapper.cm6;
-                    const docLength = view.state.doc.length;
-                    const anchor = Math.min(pending.anchor, docLength);
-                    const head = Math.min(
-                        typeof pending.head === 'number' ? pending.head : anchor, docLength);
-
-                    // Restoring the position alone is not enough: the rebuilt
-                    // editor is unfocused, so the caret does not render and
-                    // typing goes nowhere. Only take focus back if the editor
-                    // held it when the position was captured, so this cannot
-                    // pull the user out of the panel or another note.
-                    // document.hasFocus() keeps this from yanking the user back
-                    // if they left for the panel or another window during the
-                    // write and rebuild, which is not instant on a large log.
-                    const restoreFocus = pending.hasFocus === true && document.hasFocus();
-
-                    view.dispatch({
-                        selection: EditorSelection.create([EditorSelection.range(anchor, head)]),
-                        scrollIntoView: restoreFocus
-                    });
-
-                    if (restoreFocus) {
-                        view.focus();
-                    }
-                }
-            } catch (error) {
-                console.warn('[TIME-SLIP] Could not restore the cursor after the editor reloaded:', error);
-            }
         },
     };
 };
