@@ -1,7 +1,13 @@
 import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
 import { NoteManager } from './noteManager';
-import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask, getIncludeTimezone, getUpdateDelay, DEFAULT_UPDATE_DELAY } from './settings';
+import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask, getIncludeTimezone } from './settings';
 import debounce = require('lodash.debounce');
+
+// How long to wait after an edit before re-reading the log. It bounds how often
+// a large note is parsed while you type, and how soon a correction lands once
+// you leave it. Not a setting: the reason to lengthen it was that rewrites
+// interrupted typing, and they no longer happen while the note is open.
+const UPDATE_DELAY_MS = 4000;
 
 interface FieldIndices {
   project: number;
@@ -62,8 +68,7 @@ export class TaskManager {
     this.noteId = noteId;
     this.noteManager = noteManager;
     this.initializeSortOrder();
-    this.debouncedScanAndUpdate = debounce(this.rewriteUnlessEditing.bind(this), DEFAULT_UPDATE_DELAY * 1000);
-    this.updateUpdateDelay();
+    this.debouncedScanAndUpdate = debounce(this.rewriteUnlessEditing.bind(this), UPDATE_DELAY_MS);
     this.updateLogSortOrder();
     this.updateEnforceSorting();
     this.updateColumnVisibility();
@@ -740,19 +745,6 @@ export class TaskManager {
       name: 'updateSortOrder',
       sortBy: this.sortBy
     });
-  }
-
-  /**
-   * Rebuild the debounced scan with the delay currently set in the settings.
-   * Any scan already pending is dropped along with any armed deferred rewrite;
-   * a following refreshTasksFromNote() re-arms it on the new delay if the note
-   * is still stale.
-   */
-  async updateUpdateDelay() {
-    const delay = await getUpdateDelay();
-    this.debouncedScanAndUpdate.cancel();
-    this.rewritePending = false;
-    this.debouncedScanAndUpdate = debounce(this.rewriteUnlessEditing.bind(this), delay * 1000);
   }
 
   async updateLogSortOrder() {

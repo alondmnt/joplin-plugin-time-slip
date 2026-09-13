@@ -1,9 +1,6 @@
 import joplin from 'api';
 import { SettingItemType } from 'api/types'
 
-// Default delay (seconds) between editing a time log note and updating it
-export const DEFAULT_UPDATE_DELAY = 10;
-
 export async function registerSettings() {
   await joplin.settings.registerSection('timeslip', {
     label: 'Time Slip',
@@ -84,17 +81,6 @@ export async function registerSettings() {
       public: true,
       label: 'Auto-sort time logs',
       description: 'Automatically sort tasks in time log notes based on start time',
-    },
-    'timeslip.updateDelay': {
-      value: DEFAULT_UPDATE_DELAY,
-      minimum: 1,
-      maximum: 120,
-      step: 1,
-      type: SettingItemType.Int,
-      section: 'timeslip',
-      public: true,
-      label: 'Update delay (seconds)',
-      description: `How long to wait after an edit before recalculating durations and refreshing the panel. While the note is open the note itself is left alone, so a correction is written once you move on to something else. Default: ${DEFAULT_UPDATE_DELAY}`,
     },
     'timeslip.includeTimezone': {
       value: true,
@@ -248,10 +234,6 @@ export async function getShowTotalInActiveTask(): Promise<boolean> {
 
 export async function getOnlyOneActiveTask(): Promise<boolean> {
   return await joplin.settings.value('timeslip.onlyOneActiveTask');
-}
-
-export async function getUpdateDelay(): Promise<number> {
-  return await joplin.settings.value('timeslip.updateDelay');
 }
 
 export async function getIncludeTimezone(): Promise<boolean> {

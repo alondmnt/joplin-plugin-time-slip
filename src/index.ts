@@ -205,10 +205,6 @@ joplin.plugins.register({
         await taskManager.updateEnforceSorting();
         await taskManager.scanNoteAndUpdateTasks();
       }
-      if (event.keys.includes('timeslip.updateDelay')) {
-        await taskManager.updateUpdateDelay();
-        await taskManager.refreshTasksFromNote();
-      }
       if (event.keys.includes('timeslip.onlyOneActiveTask')) {
         await taskManager.updateOnlyOneActiveTask();
       }
