@@ -322,7 +322,10 @@ webviewApi.onMessage(function(event) {
     startDateInput.value = lastStartDate;
     endDateInput.value = lastEndDate;
 
-    // Trigger initial filter
+    // Normally a no-op: the inputs were just assigned from lastStartDate and
+    // lastEndDate, so applyDateFilter finds nothing changed and posts nothing.
+    // It earns its place only when a date input rejects the value and blanks
+    // itself, which is the one path that resets an unusable range.
     applyDateFilter(startDateInput, endDateInput);
 
   } else if (message.name === 'updateSortOrder') {
