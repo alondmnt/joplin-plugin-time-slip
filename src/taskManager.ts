@@ -1,4 +1,4 @@
-import { formatDuration, formatDate, formatTime, clearNoteReferences } from './utils';
+import { formatDuration, formatDate, formatTime, clearNoteReferences, parseLocalDate } from './utils';
 import { NoteManager } from './noteManager';
 import { getSummarySortOrder, getLogSortOrder, getEnforceSorting, getShowDurationColumn, getShowPercentageColumn, getShowEndTimeColumn, getOnlyOneActiveTask, getShowTotalInSummary, getShowTotalInActiveTask, getIncludeTimezone } from './settings';
 import debounce = require('lodash.debounce');
@@ -246,10 +246,11 @@ export class TaskManager {
     let isSorted = true;
     let previousStartTime = this.logSortOrder === 'ascending' ? 0 : Number.MAX_SAFE_INTEGER;
 
-    const startDate = this.currentStartDate ? new Date(this.currentStartDate) : null;
-    const endDate = this.currentEndDate ? new Date(this.currentEndDate) : null;
+    const startDate = this.currentStartDate ? parseLocalDate(this.currentStartDate) : null;
+    const endDate = this.currentEndDate ? parseLocalDate(this.currentEndDate) : null;
 
-    if (startDate) startDate.setHours(0, 0, 0, 0);
+    // parseLocalDate lands on local midnight, so the range already opens where
+    // it should; the closing date has to cover the whole of its own day.
     if (endDate) endDate.setHours(23, 59, 59, 999);
     
     // Skip the header line
