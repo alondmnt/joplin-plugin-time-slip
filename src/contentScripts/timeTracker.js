@@ -310,14 +310,14 @@ webviewApi.onMessage(function(event) {
     updateNoteSelector(message.notes);
 
   } else if (message.name === 'defaultDateRange') {
-    const startDate = new Date(message.startDate);
-    const endDate = new Date(message.endDate);
-
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
 
-    lastStartDate = startDate.toLocaleDateString('en-CA');
-    lastEndDate = endDate.toLocaleDateString('en-CA');
+    // Already YYYY-MM-DD, which is what the date inputs take. Round-tripping it
+    // through new Date() read it as UTC and wrote it back as local, losing a day
+    // west of Greenwich (#3).
+    lastStartDate = message.startDate;
+    lastEndDate = message.endDate;
 
     startDateInput.value = lastStartDate;
     endDateInput.value = lastEndDate;
