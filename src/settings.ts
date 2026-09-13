@@ -94,7 +94,7 @@ export async function registerSettings() {
       section: 'timeslip',
       public: true,
       label: 'Update delay (seconds)',
-      description: `How long to wait after an edit before recalculating durations and rewriting the note. Increase it if updates interrupt your typing. Default: ${DEFAULT_UPDATE_DELAY}`,
+      description: `How long to wait after an edit before recalculating durations and refreshing the panel. While the note is open the note itself is left alone, so a correction is written once you move on to something else. Default: ${DEFAULT_UPDATE_DELAY}`,
     },
     'timeslip.includeTimezone': {
       value: true,
