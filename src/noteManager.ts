@@ -97,6 +97,26 @@ export class NoteManager {
   }
 
   /**
+   * Is the log note the one currently selected in the editor?
+   *
+   * Returns false on any error. Every caller reads false as "go ahead and
+   * write", so a failure here degrades to the unconditional rewrites we had
+   * before, rather than silently suppressing corrections for the session.
+   */
+  async isNoteSelected(): Promise<boolean> {
+    let currentNote: any;
+    try {
+      currentNote = await this.joplin.workspace.selectedNote();
+      return !!(currentNote && currentNote.id === this.noteId);
+    } catch (error) {
+      console.debug('[TIME-SLIP] Could not read the selected note:', error);
+      return false;
+    } finally {
+      currentNote = clearNoteReferences(currentNote);
+    }
+  }
+
+  /**
    * Read the cursor position while the editor is still reachable. Returns null
    * on editors without our content script, and on any editor that has already
    * been torn down.
