@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { MenuItemLocation, ContentScriptType } from 'api/types';
+import { MenuItemLocation } from 'api/types';
 import { TaskManager } from './taskManager';
 import { NoteManager, convertMarkdownTableToCSV } from './noteManager';
 import { registerSettings, getLogNoteTag, getDefaultNoteId, setDefaultNoteId, getCurrentDateRange, setCurrentDateRange, getAggregationLevel, setAggregationLevel, getSummarySortOrder } from './settings';
@@ -9,13 +9,6 @@ joplin.plugins.register({
     await registerSettings();
     const logNoteTag = await getLogNoteTag();
     const defaultNoteId = await getDefaultNoteId();
-
-    // Register CodeMirror content script for cursor preservation
-    await joplin.contentScripts.register(
-      ContentScriptType.CodeMirrorPlugin,
-      'timeSlip_cursorPreservation',
-      './contentScripts/cursorPreservation.js'
-    );
 
     const panel = await joplin.views.panels.create('timeSlipPanel');
 
