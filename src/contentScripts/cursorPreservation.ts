@@ -100,6 +100,26 @@ export default (context: { contentScriptId: string, postMessage: any }) => {
                 
                 return { success: false, error: 'Invalid cursor position' };
             });
+
+            // Joplin rebuilds the editor when a note changes underneath it, which
+            // is how a Time Slip correction arrives. The plugin cannot call into
+            // an editor that does not exist yet, so the position it captured
+            // before the write is collected here instead, once we are live.
+            try {
+                const pending = await context.postMessage({ kind: 'takePendingCursor' });
+                if (pending && typeof pending.anchor === 'number') {
+                    const view = codeMirrorWrapper.cm6;
+                    const docLength = view.state.doc.length;
+                    const anchor = Math.min(pending.anchor, docLength);
+                    const head = Math.min(
+                        typeof pending.head === 'number' ? pending.head : anchor, docLength);
+                    view.dispatch({
+                        selection: EditorSelection.create([EditorSelection.range(anchor, head)])
+                    });
+                }
+            } catch (error) {
+                console.warn('[TIME-SLIP] Could not restore the cursor after the editor reloaded:', error);
+            }
         },
     };
 };

@@ -17,6 +17,7 @@ joplin.plugins.register({
       './contentScripts/cursorPreservation.js'
     );
 
+
     const panel = await joplin.views.panels.create('timeSlipPanel');
 
     await joplin.views.panels.setHtml(panel, `
@@ -66,6 +67,14 @@ joplin.plugins.register({
     const noteManager = new NoteManager(joplin, noteId, panel);
     const taskManager = new TaskManager(joplin, panel, noteId, noteManager);
     noteManager.setTaskManager(taskManager);
+    // The content script asks for a cursor position each time it loads, which is
+    // the only moment a rebuilt editor is reachable. See NoteManager.updateNote.
+    await joplin.contentScripts.onMessage('timeSlip_cursorPreservation', async (message: any) => {
+      if (message && message.kind === 'takePendingCursor') {
+        return await noteManager.takePendingCursor();
+      }
+      return null;
+    });
     await taskManager.setLogNoteTag(logNoteTag);
 
     if (noteId) {
