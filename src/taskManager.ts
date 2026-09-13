@@ -689,15 +689,28 @@ export class TaskManager {
    *
    * If the gate dropped a rewrite while they were in it, this is the first
    * moment it can land, so scan and let the debounce write it with the gate now
-   * open. Otherwise only refresh the note list: ordinary browsing must not parse
-   * the whole log on every click.
+   * open. Ordinary browsing skips that scan: it must not parse the whole log on
+   * every click.
+   *
+   * The flag is spent whether or not the scan succeeds. A scan that cannot run
+   * (no note, a deleted one, an unparseable header) must not leave it set, or
+   * every later note click retries a failing scan and posts an error. Losing
+   * the flush costs nothing that is not recoverable: sync, start, stop and the
+   * sort paths all still correct the note.
+   *
+   * The note list is refreshed either way, as it was before the flush existed.
+   * A failed scan never reaches the refresh inside updateTasksAndNote, and the
+   * note picker going stale for the session is worse than one extra lookup on
+   * the rare navigation that flushes.
    */
   async handleNoteSelectionChange() {
-    if (this.rewriteHeldBack) {
+    const flushHeldBack = this.rewriteHeldBack && !!this.noteId;
+    this.rewriteHeldBack = false;
+
+    if (flushHeldBack) {
       await this.refreshTasksFromNote();
-    } else {
-      await this.getLogNotes();
     }
+    await this.getLogNotes();
   }
 
   async setNoteId(noteId: string) {
