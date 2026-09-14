@@ -649,11 +649,20 @@ export class TaskManager {
     await this.scanNoteAndUpdateTasks();
   }
 
+  /**
+   * Stop every running task, one at a time.
+   *
+   * Sequential on purpose, not an optimisation target. stopTask reads the whole
+   * note body, edits one line and writes the body back, so two in flight both read
+   * the same snapshot and the second write drops the first task's end time (#12).
+   * Awaiting each stop in turn means every read sees the previous write.
+   */
   async stopAllTasks() {
-    await Promise.all(Object.keys(this.tasks).map(async(key) => {
-      let task = this.splitTaskKey(key);
+    // Keys are snapshotted before the loop; stopTask deletes its own as it goes.
+    for (const key of Object.keys(this.tasks)) {
+      const task = this.splitTaskKey(key);
       await this.stopTask(task.task, task.project);
-    }));
+    }
   }
 
   async getInitialData() {
