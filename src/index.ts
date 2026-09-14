@@ -316,6 +316,17 @@ joplin.plugins.register({
           await joplin.commands.execute('openNote', message.noteId);
         }
 
+      } else if (message.name === 'focusEditor') {
+        try {
+          await joplin.commands.execute('editor.focus');
+        } catch (error) {
+          // No editor to focus, or the command is unavailable on this platform.
+          // The panel has already cleared the box, so Escape still did something,
+          // and this is logged rather than swallowed so that a platform where the
+          // command is missing is distinguishable from one where focus just stays.
+          console.debug('[TIME-SLIP] Could not focus the editor:', error);
+        }
+
       } else if (message.name === 'changeSortOrder') {
         if (noteId) {
           await taskManager.updateSummarySortOrder(message.sortBy);
