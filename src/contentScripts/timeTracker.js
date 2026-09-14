@@ -1029,9 +1029,15 @@ completedTasksDiv.addEventListener('click', function(event) {
   }
 });
 
+// Escape clears the box, and Escape on an already empty box moves focus on.
+// From the project box that is the task name box, where typing starts. The task
+// name box is the end of the chain, so it hands focus back to the editor. The
+// clearing is local either way, so the box still empties if focus cannot move.
 function handleEscapeKey(input) {
   if (input.value !== '') {
     input.value = '';
+  } else if (input === taskNameInput) {
+    webviewApi.postMessage({ name: 'focusEditor' });
   } else {
     taskNameInput.focus();
   }
